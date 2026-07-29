@@ -22,6 +22,7 @@ import sys
 import tarfile
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -445,18 +446,76 @@ def parse_source_repo(source: str) -> tuple[str, str]:
     return parts[0], parts[1].removesuffix(".git")
 
 
-def download(url: str, destination: Path) -> None:
-    headers = {"User-Agent": "gov-harness/1"}
+class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Do not forward a GitHub token to a release object's storage host."""
+
+    def redirect_request(
+        self,
+        request: urllib.request.Request,
+        file_pointer: object,
+        code: int,
+        message: str,
+        headers: object,
+        new_url: str,
+    ) -> urllib.request.Request | None:
+        redirected = super().redirect_request(
+            request, file_pointer, code, message, headers, new_url
+        )
+        if redirected is None:
+            return None
+        old_host = urllib.parse.urlsplit(request.full_url).netloc
+        new_host = urllib.parse.urlsplit(new_url).netloc
+        if old_host != new_host:
+            redirected.remove_header("Authorization")
+        return redirected
+
+
+def request_headers(accept: str) -> dict[str, str]:
+    headers = {
+        "Accept": accept,
+        "User-Agent": "gov-harness/1",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
     token = os.environ.get(TOKEN_ENV)
     if token:
         headers["Authorization"] = f"Bearer {token}"
-    request = urllib.request.Request(url, headers=headers)
+    return headers
+
+
+def open_request(url: str, accept: str) -> object:
+    request = urllib.request.Request(url, headers=request_headers(accept))
+    opener = urllib.request.build_opener(SafeRedirectHandler())
+    return opener.open(request, timeout=30)
+
+
+def download(url: str, destination: Path, accept: str = "application/octet-stream") -> None:
+    request = urllib.request.Request(url, headers=request_headers(accept))
+    opener = urllib.request.build_opener(SafeRedirectHandler())
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with opener.open(request, timeout=30) as response:
             with destination.open("wb") as stream:
                 shutil.copyfileobj(response, stream)
     except (OSError, urllib.error.URLError) as exc:
         raise HarnessError(f"download failed for {url}: {exc}") from exc
+
+
+def private_release_assets(owner: str, repo: str, version: str) -> dict[str, str]:
+    url = f"https://api.github.com/repos/{owner}/{repo}/releases/tags/{version}"
+    try:
+        with open_request(url, "application/vnd.github+json") as response:
+            metadata = json.loads(response.read().decode("utf-8"))
+    except (OSError, urllib.error.URLError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HarnessError(f"cannot resolve private release metadata: {exc}") from exc
+    assets = metadata.get("assets") if isinstance(metadata, dict) else None
+    if not isinstance(assets, list):
+        raise HarnessError("private release metadata has no asset list")
+    result: dict[str, str] = {}
+    for asset in assets:
+        if isinstance(asset, dict) and isinstance(asset.get("name"), str):
+            api_url = asset.get("url")
+            if isinstance(api_url, str):
+                result[asset["name"]] = api_url
+    return result
 
 
 def safe_extract(archive: Path, destination: Path) -> None:
@@ -497,8 +556,15 @@ def from_network(source: str, version: str) -> Release:
     archive = temporary / archive_name
     sums = temporary / "SHA256SUMS"
     try:
-        download(f"{base}/{archive_name}", archive)
-        download(f"{base}/SHA256SUMS", sums)
+        if os.environ.get(TOKEN_ENV):
+            assets = private_release_assets(owner, repo, version)
+            for name, destination in ((archive_name, archive), ("SHA256SUMS", sums)):
+                if name not in assets:
+                    raise HarnessError(f"release does not contain asset {name}")
+                download(assets[name], destination)
+        else:
+            download(f"{base}/{archive_name}", archive)
+            download(f"{base}/SHA256SUMS", sums)
         expected: str | None = None
         for line in sums.read_text(encoding="utf-8").splitlines():
             parts = line.split()

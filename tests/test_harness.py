@@ -7,7 +7,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import urllib.request
 from pathlib import Path
+
+import harness
 
 
 HARNESS = Path(__file__).resolve().parents[1] / "harness.py"
@@ -247,6 +250,23 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(
             3, self.run_cli("check", "--project", str(self.project)).returncode
         )
+
+    def test_redirect_drops_authorization_on_host_change(self) -> None:
+        request = urllib.request.Request(
+            "https://api.github.com/repos/example/release",
+            headers={"Authorization": "Bearer secret"},
+        )
+        redirected = harness.SafeRedirectHandler().redirect_request(
+            request,
+            None,
+            302,
+            "Found",
+            {},
+            "https://objects.githubusercontent.com/signed-asset",
+        )
+        self.assertIsNotNone(redirected)
+        assert redirected is not None
+        self.assertIsNone(redirected.get_header("Authorization"))
 
 
 if __name__ == "__main__":

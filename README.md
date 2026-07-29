@@ -27,7 +27,7 @@ dedicated review.
 ```bash
 python3 -m unittest -v tests/test_harness.py
 python3 scripts/verify_source.py
-python3 scripts/build_manifest.py --version v0.1.0-rc.1 --check
+python3 scripts/build_manifest.py --version v0.1.0-rc.2 --check
 ```
 
 ## Release status
@@ -35,4 +35,3 @@ python3 scripts/build_manifest.py --version v0.1.0-rc.1 --check
 All `-rc.*` tags are pre-production. Until private `main` protection and
 signed tags are available, production certification is explicitly `NO-GO`;
 see `docs/HARDENING.md`.
-

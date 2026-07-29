@@ -1,0 +1,21 @@
+name: governance-source
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: python -m unittest -v tests/test_harness.py
+      - run: python scripts/verify_source.py
+      - run: python scripts/build_manifest.py --version v0.1.0-rc.1 --check
+

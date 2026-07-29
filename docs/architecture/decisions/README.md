@@ -9,3 +9,4 @@
 | [ADR-0003](0003-bdd-background-setup-is-idempotent.md) | BDD Background setup is idempotent and scenario-order independent | Accepted |
 | [ADR-0004](0004-release-growth-cannot-overwrite-unmanaged-paths.md) | Release growth cannot silently overwrite unmanaged paths | Accepted |
 | [ADR-0005](0005-receipts-cover-executable-mode.md) | Receipt integrity includes executable mode | Accepted |
+| [ADR-0006](0006-generated-documents-have-distinct-lifecycle.md) | Generated documents have a distinct lifecycle | Accepted |

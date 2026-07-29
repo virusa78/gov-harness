@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.0-rc.8 — 2026-07-29
+
+- Adopt the consumer-born generated-document lifecycle.
+- Require generator identity and source digest for every GENERATED document.
+
 ## v0.1.0-rc.7 — 2026-07-29
 
 - Record executable mode in release entries and project receipts.

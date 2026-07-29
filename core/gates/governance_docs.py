@@ -24,6 +24,7 @@ REQUIRED_METADATA = ("id", "class", "status", "owner", "updated", "sources")
 ALLOWED_STATUS = {
     "state": {"active", "deprecated", "superseded"},
     "event": {"active", "sealed", "superseded"},
+    "generated": {"current"},
 }
 LINK_PATTERN = re.compile(r"!?\[[^\]]*]\(([^)]+)\)")
 REFERENCE_PATTERN = re.compile(r"^\s*\[[^\]]+]:\s*(\S+)")
@@ -227,6 +228,20 @@ def check_metadata(root: Path, config: dict[str, object]) -> list[Finding]:
                     f"status {status!r} is invalid for class {doc_class!r}",
                 )
             )
+        if doc_class == "generated":
+            absent_generated = [
+                key for key in ("generator", "source_digest") if not metadata.get(key)
+            ]
+            if absent_generated:
+                findings.append(
+                    Finding(
+                        "DOC-G2",
+                        relative(path, root),
+                        1,
+                        "generated document is missing required fields: "
+                        + ", ".join(absent_generated),
+                    )
+                )
         if doc_class == "event" and status == "sealed":
             for key in ("truth_as_of", "superseded_by"):
                 if key not in metadata:

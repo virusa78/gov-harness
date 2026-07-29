@@ -212,7 +212,7 @@
       "executable": true,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:6d7bf9b3fe1c7b1af6299d68382ad26523d2f6e3352bc8dc8db3ff080957513c",
+      "sha256": "sha256:a4a3284726f89433c2a2c1c1ef376c1a522b07e74bcc080dc3ebc79afd192d36",
       "source": "core/gates/governance_docs.py",
       "templated": false
     },
@@ -257,5 +257,5 @@
     "golden_sample"
   ],
   "schema_version": 1,
-  "version": "v0.1.0-rc.7"
+  "version": "v0.1.0-rc.8"
 }

@@ -186,6 +186,71 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertEqual(0, self.run_cli("check", "--project", str(self.project)).returncode)
 
+    def test_sync_refuses_new_destination_collision(self) -> None:
+        self.assertEqual(0, self.init().returncode)
+        added = self.release / "core/new-gate.py"
+        added.write_text("upstream\n", encoding="utf-8")
+        manifest_path = self.release / "release/manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["files"].append(
+            {
+                "source": "core/new-gate.py",
+                "destination": "scripts/new-gate.py",
+                "layer": "core",
+                "profile": None,
+                "templated": False,
+                "sha256": sha(added.read_bytes()),
+            }
+        )
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        local = self.project / "scripts/new-gate.py"
+        local.parent.mkdir(parents=True)
+        local.write_text("project local\n", encoding="utf-8")
+        result = self.run_cli(
+            "sync",
+            "--project",
+            str(self.project),
+            "--to",
+            self.version,
+            "--from-dir",
+            str(self.release),
+        )
+        self.assertEqual(3, result.returncode)
+        self.assertIn("collides with an unmanaged local path", result.stderr)
+        self.assertEqual("project local\n", local.read_text(encoding="utf-8"))
+
+    def test_sync_accepts_identical_new_destination(self) -> None:
+        self.assertEqual(0, self.init().returncode)
+        added = self.release / "core/new-gate.py"
+        added.write_text("same\n", encoding="utf-8")
+        manifest_path = self.release / "release/manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["files"].append(
+            {
+                "source": "core/new-gate.py",
+                "destination": "scripts/new-gate.py",
+                "layer": "core",
+                "profile": None,
+                "templated": False,
+                "sha256": sha(added.read_bytes()),
+            }
+        )
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        local = self.project / "scripts/new-gate.py"
+        local.parent.mkdir(parents=True)
+        local.write_text("same\n", encoding="utf-8")
+        result = self.run_cli(
+            "sync",
+            "--project",
+            str(self.project),
+            "--to",
+            self.version,
+            "--from-dir",
+            str(self.release),
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(0, self.run_cli("check", "--project", str(self.project)).returncode)
+
     def test_override_is_never_owned_or_modified(self) -> None:
         local = self.project / "docs/governance/rule.md"
         local.parent.mkdir(parents=True)

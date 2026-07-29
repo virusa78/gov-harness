@@ -1,3 +1,12 @@
+---
+id: governance/rules/design-synthesis
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/design-synthesis.md]
+---
+
 # Design Synthesis
 
 After discovery and before writing the design document, apply these three lenses to the collected findings. This step requires the full picture — do not parallelize.

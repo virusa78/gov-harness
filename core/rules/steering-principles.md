@@ -1,3 +1,12 @@
+---
+id: governance/rules/steering-principles
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/steering-principles.md]
+---
+
 # Steering Principles
 
 Steering files are **project memory**, not exhaustive specifications.

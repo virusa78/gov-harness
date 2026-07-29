@@ -1,3 +1,12 @@
+---
+id: governance/rules/io-resilience
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/io-resilience.md]
+---
+
 # I/O Resilience — Binding Agent Rule
 
 **Effective**: 2026-06-28  

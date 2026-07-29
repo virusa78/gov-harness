@@ -1,3 +1,12 @@
+---
+id: governance/rules/design-discovery-full
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/design-discovery-full.md]
+---
+
 # Full Discovery Process for Technical Design
 
 ## Objective

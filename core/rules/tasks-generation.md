@@ -1,3 +1,12 @@
+---
+id: governance/rules/tasks-generation
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/tasks-generation.md]
+---
+
 # Task Generation Rules
 
 ## Core Principles

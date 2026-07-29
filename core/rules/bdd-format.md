@@ -1,3 +1,12 @@
+---
+id: governance/rules/bdd-format
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/bdd-format.md]
+---
+
 # BDD Format Guidelines
 
 ## Overview

@@ -1,3 +1,12 @@
+---
+id: governance/rules/design-review-gate
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/design-review-gate.md]
+---
+
 # Design Review Gate
 
 Before writing `design.md`, review the draft design and repair local issues until the design passes or a true spec gap is discovered.

@@ -644,6 +644,22 @@ def command_sync(args: argparse.Namespace) -> int:
     try:
         release = acquire_release(source, args.to, args.from_dir)
         payload, receipt = materialize(release, profiles, params, overrides)
+        old_files = old_lock.get("files")
+        if not isinstance(old_files, dict):
+            raise HarnessError("lock files are invalid")
+        collisions = []
+        for path, data in payload.items():
+            destination = safe_destination(project, path)
+            if path not in old_files and destination.exists():
+                identical = destination.is_file() and destination.read_bytes() == data
+                if not identical:
+                    collisions.append(path)
+        if collisions and not args.force_theirs:
+            raise HarnessError(
+                "new release destination collides with an unmanaged local path: "
+                + ", ".join(sorted(collisions))
+                + "; move it, adopt it upstream, or explicitly --force-theirs"
+            )
         unexplained = []
         for finding in current_drift:
             _, path, _, _ = finding

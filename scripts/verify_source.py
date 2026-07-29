@@ -68,6 +68,19 @@ def main() -> int:
         fail(f"profile skill boundary differs: {sorted(profile)}")
     if rules != RULES:
         fail(f"rule inventory differs: {sorted(rules)}")
+    for path in (ROOT / "core/rules").glob("*.md"):
+        text = path.read_text(encoding="utf-8")
+        required = (
+            "---\n",
+            "id: governance/rules/",
+            "class: state",
+            "status: active",
+            "owner: governance-harness",
+            "updated:",
+            "sources:",
+        )
+        if not all(marker in text[:500] for marker in required):
+            fail(f"rule lifecycle metadata is incomplete: {path.relative_to(ROOT)}")
     for directory, expected in (
         (ROOT / "core/skills", CORE_SKILLS),
         (profile_root, PROFILE_SKILLS),
@@ -109,4 +122,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -35,6 +35,20 @@ def entries() -> list[dict[str, object]]:
             None,
             False,
         ),
+        (
+            ROOT / "core/gates/sync_agent_stubs.py",
+            "scripts/sync-agent-stubs.py",
+            "core",
+            None,
+            False,
+        ),
+        (
+            ROOT / "core/gates/verify_skills.py",
+            "scripts/verify-skills.py",
+            "core",
+            None,
+            False,
+        ),
     ]
     for path in sorted((ROOT / "core/rules").glob("*.md")):
         mappings.append(
@@ -116,4 +130,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

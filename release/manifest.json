@@ -76,7 +76,7 @@
       "destination": "docs/governance/rules/bdd-format.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:d7e45966e0a8477031c6f9c291ea46319e54affaff5c0f8a410ab28902658ac1",
+      "sha256": "sha256:d018d414f87067fabed2cee4b00a6c45ecc9f9e1d642b80c38e708f7aa7bd601",
       "source": "core/rules/bdd-format.md",
       "templated": false
     },
@@ -84,7 +84,7 @@
       "destination": "docs/governance/rules/design-discovery-full.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:51a4386b8afeafddb32e2b115dafa05ffc09045beb092301deda5f656a7e4436",
+      "sha256": "sha256:ecd79ac246159894227dd78ff4eb569419a93bb7fbc34c89c23c958ca7666163",
       "source": "core/rules/design-discovery-full.md",
       "templated": false
     },
@@ -92,7 +92,7 @@
       "destination": "docs/governance/rules/design-discovery-light.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:cc96d009e42e2d4a030e24b72ba92025a520d35354684fa93a9d68e9a3e3947e",
+      "sha256": "sha256:01d848acdb6d90b7b55ec8fb30c5a3c6ae506a37ad872eab813003ef555779fb",
       "source": "core/rules/design-discovery-light.md",
       "templated": false
     },
@@ -100,7 +100,7 @@
       "destination": "docs/governance/rules/design-principles.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:b198612d8f437e8bef83a1ac82f9ba6868f37205fe6e465d7ea971f639997382",
+      "sha256": "sha256:861784d89fffc1f2a6d4fa2eec6c6494ca3bea59f0697ee6cc6fff8511503ccf",
       "source": "core/rules/design-principles.md",
       "templated": false
     },
@@ -108,7 +108,7 @@
       "destination": "docs/governance/rules/design-review-gate.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:a432811a17230cbeec1226a4f68052432c8176a4d4e4a9faea5adcf29289c2b8",
+      "sha256": "sha256:a62e374ff211881f023fb8522570cb3a1df32048e7b6aabeb15fe689e386e942",
       "source": "core/rules/design-review-gate.md",
       "templated": false
     },
@@ -116,7 +116,7 @@
       "destination": "docs/governance/rules/design-review.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:3917978761b6d94188abb3ee0d32a9885c77b2b956c37a22cfbea3c19d308a21",
+      "sha256": "sha256:5066b6d5e8f67a141a20286cc29585b28dc7d7c9b22b1c96059d5ef5038a79e2",
       "source": "core/rules/design-review.md",
       "templated": false
     },
@@ -124,7 +124,7 @@
       "destination": "docs/governance/rules/design-synthesis.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:e2b38d4a652973344ff5b69fab56798c8eebaecdf86df16024305e666ba0ba83",
+      "sha256": "sha256:5f6dfa436c73a594370834cd587faa5076b2e59817d805cbe8c96a0bf70af2f2",
       "source": "core/rules/design-synthesis.md",
       "templated": false
     },
@@ -132,7 +132,7 @@
       "destination": "docs/governance/rules/ears-format.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:35f79570c44d491f8f96b458a60979ec2d3d2e2c66ed3d030263e6a8ecb83909",
+      "sha256": "sha256:3fdf41f33d04fff4ea0cca771de8fb7930cef24c8861af38bfccd619daa2c73c",
       "source": "core/rules/ears-format.md",
       "templated": true
     },
@@ -140,7 +140,7 @@
       "destination": "docs/governance/rules/gap-analysis.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:220c22c9cc8da70311ae9a8dff2a27b86623eb2f70197c4b9aff6cd4aec1d1a2",
+      "sha256": "sha256:700a719fcec01d502e803cf7c075a0196f14ec2d4c11579dc8dc497f992b3e3c",
       "source": "core/rules/gap-analysis.md",
       "templated": false
     },
@@ -148,7 +148,7 @@
       "destination": "docs/governance/rules/io-resilience.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:1ed116511cc06c5abc412066333bf8d615df7ed4aee63ab8dc08e2efc8d83be5",
+      "sha256": "sha256:b2082d13d244bc56131a8bde5286a306eeb00fb007bab960e2d274765422e97f",
       "source": "core/rules/io-resilience.md",
       "templated": false
     },
@@ -156,7 +156,7 @@
       "destination": "docs/governance/rules/requirements-review-gate.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:61b2b9c9b7c8469b3ff369b2f1f6afae4fa2915e9109532032280c51ecfe4beb",
+      "sha256": "sha256:2c99ff78b16a19872e32d93c116cc3ca4520cf267fbaf4149307876d54a6da0c",
       "source": "core/rules/requirements-review-gate.md",
       "templated": false
     },
@@ -164,7 +164,7 @@
       "destination": "docs/governance/rules/steering-principles.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:da53daeabb0299e9f429213af362b54cef93260a1a221b960965956c426df58f",
+      "sha256": "sha256:742d6ba60bf1cdc7a58709f7b20890284a0d70926ed7382d6fbe91b674412f3e",
       "source": "core/rules/steering-principles.md",
       "templated": false
     },
@@ -172,7 +172,7 @@
       "destination": "docs/governance/rules/tasks-generation.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:b2fdd10b39e11d8b0fdd2239516960512db2e2688850aae2270a02d748f55d3b",
+      "sha256": "sha256:0460206b1cb0654d564fdde3f3ecba764e399aa17828889f0093a3656309a47d",
       "source": "core/rules/tasks-generation.md",
       "templated": false
     },
@@ -180,7 +180,7 @@
       "destination": "docs/governance/rules/tasks-parallel-analysis.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:e6c9dad086b3ec5e25a97313967d4a115c20bd58160a0d9c77fa1ea948f173b1",
+      "sha256": "sha256:1f71fb721c5d56706fc6b8653457e95776add47bb7e89b18d635ceba83794d18",
       "source": "core/rules/tasks-parallel-analysis.md",
       "templated": false
     },
@@ -196,8 +196,16 @@
       "destination": "scripts/harness.py",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:7dd12cbecf90dfbb2c816b76884a725152bffc3874a662d72e35bd8eee14cc20",
+      "sha256": "sha256:e7304d222d3272a2ed1e8d49c3370454ceadfecccb10b169ac43876f42dc78cd",
       "source": "harness.py",
+      "templated": false
+    },
+    {
+      "destination": "scripts/sync-agent-stubs.py",
+      "layer": "core",
+      "profile": null,
+      "sha256": "sha256:0a64defc147fb9c22973f7e3d9e47a2f98eb17b243a9b6e6b509517b573d9455",
+      "source": "core/gates/sync_agent_stubs.py",
       "templated": false
     },
     {
@@ -207,11 +215,19 @@
       "sha256": "sha256:5ca5e8fcecb69bd0656d204ea552824825110802d5a96de3001142512f69010a",
       "source": "core/gates/verify-docs.sh",
       "templated": false
+    },
+    {
+      "destination": "scripts/verify-skills.py",
+      "layer": "core",
+      "profile": null,
+      "sha256": "sha256:564b340f66c177bc93e5d628aa875bec8890887a6c73c93316d386b9154e09d9",
+      "source": "core/gates/verify_skills.py",
+      "templated": false
     }
   ],
   "required_params": [
     "golden_sample"
   ],
   "schema_version": 1,
-  "version": "v0.1.0-rc.5"
+  "version": "v0.1.0-rc.6"
 }

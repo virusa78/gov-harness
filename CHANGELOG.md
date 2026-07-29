@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.0-rc.6 — 2026-07-29
+
+- Add lifecycle frontmatter to all fourteen canonical rules so consumer
+  metadata ratchets do not increase.
+- Distribute generic DOC-G3 stub and SKILL-G boundary verifiers.
+- Refuse a new release destination that collides with differing unmanaged
+  project content; accept byte-identical target convergence.
+
 ## v0.1.0-rc.5 — 2026-07-29
 
 - Accept the second pilot-born BDD clarification: shared Background setup must

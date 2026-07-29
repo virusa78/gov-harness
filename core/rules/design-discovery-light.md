@@ -1,3 +1,12 @@
+---
+id: governance/rules/design-discovery-light
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/design-discovery-light.md]
+---
+
 # Light Discovery Process for Extensions
 
 ## Objective

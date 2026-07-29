@@ -1,3 +1,12 @@
+---
+id: governance/rules/requirements-review-gate
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/requirements-review-gate.md]
+---
+
 # Requirements Review Gate
 
 Before writing `requirements.md`, review the draft requirements and repair local issues until the draft passes or a true scope ambiguity is discovered.

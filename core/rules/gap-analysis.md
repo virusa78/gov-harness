@@ -1,3 +1,12 @@
+---
+id: governance/rules/gap-analysis
+class: state
+status: active
+owner: governance-harness
+updated: 2026-07-29
+sources: [core/rules/gap-analysis.md]
+---
+
 # Gap Analysis Process
 
 ## Objective

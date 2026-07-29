@@ -9,4 +9,5 @@
 - Add deterministic manifest/archive generation and reusable receipt CI.
 - Mark the release pre-production while private branch protection and tag
   signing remain unavailable.
-
+- Record the hosted-runner billing/spending prerequisite after GitHub refused
+  to allocate the initial CI job.

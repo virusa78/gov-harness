@@ -196,7 +196,7 @@
       "destination": "scripts/harness.py",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:ca354fcbe6c28e9bca048c06caf56e7f7cc7c70e2a53c725bd18a8cb2e6780e1",
+      "sha256": "sha256:95cecf33d07c283a5d1d3fb150df0cbc23b9b0213faa616c464cf9bcf13d7f21",
       "source": "harness.py",
       "templated": false
     },
@@ -213,5 +213,5 @@
     "golden_sample"
   ],
   "schema_version": 1,
-  "version": "v0.1.0-rc.2"
+  "version": "v0.1.0-rc.3"
 }

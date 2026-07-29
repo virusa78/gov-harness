@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.0-rc.3 — 2026-07-29
+
+- Make `adopt` patch upstream `origin` paths from the lock instead of consumer
+  destinations.
+- Record destination-to-origin mappings in adopt metadata.
+- Refuse automatic reverse-adoption of rendered templates because the
+  project-specific value cannot be generalized safely.
+
 ## v0.1.0-rc.2 — 2026-07-29
 
 - Resolve private release assets through the GitHub release API instead of the

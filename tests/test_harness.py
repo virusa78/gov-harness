@@ -198,13 +198,13 @@ class HarnessTests(unittest.TestCase):
         subprocess.run(["git", "add", "."], cwd=self.project, check=True)
         subprocess.run(["git", "commit", "-qm", "installed"], cwd=self.project, check=True)
         before = (self.project / ".harness.lock").read_bytes()
-        path = self.project / "docs/governance/rule.md"
+        path = self.project / "docs/governance/csharp.md"
         path.write_text("improved\n", encoding="utf-8")
         result = self.run_cli(
             "adopt",
             "--project",
             str(self.project),
-            "docs/governance/rule.md",
+            "docs/governance/csharp.md",
         )
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertEqual(before, (self.project / ".harness.lock").read_bytes())
@@ -213,6 +213,41 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(1, len(patches))
         self.assertEqual(1, len(metadata))
         self.assertIn("+improved", patches[0].read_text(encoding="utf-8"))
+        self.assertIn("a/profile/gate.md", patches[0].read_text(encoding="utf-8"))
+        receipt = json.loads(metadata[0].read_text(encoding="utf-8"))
+        self.assertEqual(
+            [
+                {
+                    "destination": "docs/governance/csharp.md",
+                    "origin": "profile/gate.md",
+                }
+            ],
+            receipt["mappings"],
+        )
+
+    def test_adopt_refuses_rendered_template(self) -> None:
+        subprocess.run(["git", "init", "-q"], cwd=self.project, check=True)
+        subprocess.run(
+            ["git", "config", "user.email", "gate@example.invalid"],
+            cwd=self.project,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Gate Test"], cwd=self.project, check=True
+        )
+        self.assertEqual(0, self.init().returncode)
+        subprocess.run(["git", "add", "."], cwd=self.project, check=True)
+        subprocess.run(["git", "commit", "-qm", "installed"], cwd=self.project, check=True)
+        path = self.project / "docs/governance/rule.md"
+        path.write_text("cannot reverse template\n", encoding="utf-8")
+        result = self.run_cli(
+            "adopt",
+            "--project",
+            str(self.project),
+            "docs/governance/rule.md",
+        )
+        self.assertEqual(3, result.returncode)
+        self.assertIn("rendered template", result.stderr)
 
     def test_manifest_traversal_and_bad_digest_refuse(self) -> None:
         manifest_path = self.release / "release/manifest.json"

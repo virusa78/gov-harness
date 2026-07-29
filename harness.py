@@ -706,13 +706,26 @@ def command_adopt(args: argparse.Namespace) -> int:
     for path in requested:
         if path not in raw_files:
             raise HarnessError(f"adopt path is not receipt-owned: {path}")
+        metadata = raw_files[path]
+        if not isinstance(metadata, dict):
+            raise HarnessError(f"lock metadata for {path} is invalid")
+        if metadata.get("rendered") is True:
+            raise HarnessError(
+                f"adopt cannot reverse a rendered template automatically: {path}"
+            )
+        normalized_relative(metadata.get("origin"), f"origin for {path}")
         safe_destination(project, path)
     commit = git_output(project, "rev-parse", "HEAD")
     if commit.returncode != 0:
         raise HarnessError("adopt requires a Git repository with a HEAD commit")
     base_commit = commit.stdout.strip()
     chunks: list[str] = []
+    mappings: list[dict[str, str]] = []
     for path in requested:
+        metadata = raw_files[path]
+        assert isinstance(metadata, dict)
+        origin = normalized_relative(metadata.get("origin"), f"origin for {path}")
+        mappings.append({"destination": path, "origin": origin})
         before_result = git_output(project, "show", f"HEAD:{path}")
         before = before_result.stdout.splitlines(keepends=True) if before_result.returncode == 0 else []
         destination = safe_destination(project, path)
@@ -725,8 +738,8 @@ def command_adopt(args: argparse.Namespace) -> int:
             difflib.unified_diff(
                 before,
                 after,
-                fromfile=f"a/{path}",
-                tofile=f"b/{path}",
+                fromfile=f"a/{origin}",
+                tofile=f"b/{origin}",
             )
         )
     if not chunks:
@@ -746,7 +759,7 @@ def command_adopt(args: argparse.Namespace) -> int:
         "source": lock.get("source"),
         "installed_version": lock.get("version"),
         "base_commit": base_commit,
-        "paths": sorted(requested),
+        "mappings": sorted(mappings, key=lambda item: item["destination"]),
         "patch": patch_name,
         "patch_sha256": digest_file(patch_path),
     }

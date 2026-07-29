@@ -90,6 +90,7 @@ def entries() -> list[dict[str, object]]:
                 "layer": layer,
                 "profile": profile,
                 "templated": templated,
+                "executable": source.suffix in {".py", ".sh"},
                 "sha256": digest(source),
             }
         )

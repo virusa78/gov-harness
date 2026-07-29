@@ -47,6 +47,7 @@ class ReleaseFile:
     layer: str
     profile: str | None
     templated: bool
+    executable: bool
     sha256: str
 
 
@@ -139,6 +140,9 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
         templated = raw.get("templated", False)
         if not isinstance(templated, bool):
             raise HarnessError(f"templated flag for {destination} must be boolean")
+        executable = raw.get("executable", False)
+        if not isinstance(executable, bool):
+            raise HarnessError(f"executable flag for {destination} must be boolean")
         sha256 = raw.get("sha256")
         if not isinstance(sha256, str) or not sha256.startswith("sha256:"):
             raise HarnessError(f"invalid source digest for {destination}")
@@ -151,7 +155,15 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
                 f"source digest mismatch for {source}: expected {sha256}, got {actual}"
             )
         files.append(
-            ReleaseFile(source, destination, str(layer), profile, templated, sha256)
+            ReleaseFile(
+                source,
+                destination,
+                str(layer),
+                profile,
+                templated,
+                executable,
+                sha256,
+            )
         )
     required = string_list(manifest.get("required_params", []), "required_params")
     if len(required) != len(set(required)):
@@ -257,6 +269,7 @@ def materialize(
             "layer": entry.layer,
             "profile": entry.profile,
             "rendered": entry.templated,
+            "executable": entry.executable,
             "sha256": digest_bytes(data),
         }
     return payload, receipt
@@ -325,6 +338,19 @@ def drift(project: Path, lock: dict[str, object]) -> list[tuple[str, str, str | 
             actual = digest_file(destination)
             if actual != expected:
                 findings.append(("changed", path, expected, actual))
+            expected_executable = metadata.get("executable", False)
+            if not isinstance(expected_executable, bool):
+                raise HarnessError(f"lock executable flag for {path} is invalid")
+            actual_executable = bool(destination.stat().st_mode & 0o111)
+            if actual_executable != expected_executable:
+                findings.append(
+                    (
+                        "mode",
+                        path,
+                        "executable" if expected_executable else "non-executable",
+                        "executable" if actual_executable else "non-executable",
+                    )
+                )
     return findings
 
 
@@ -359,9 +385,19 @@ def apply_transaction(
 ) -> None:
     if adopt_existing:
         mismatches = []
+        receipt_files = new_lock.get("files")
+        if not isinstance(receipt_files, dict):
+            raise HarnessError("new lock files are invalid")
         for destination, data in payload.items():
             path = safe_destination(project, destination)
-            if not path.is_file() or path.read_bytes() != data:
+            metadata = receipt_files.get(destination)
+            expected_executable = (
+                metadata.get("executable", False) if isinstance(metadata, dict) else False
+            )
+            mode_matches = path.is_file() and bool(path.stat().st_mode & 0o111) == bool(
+                expected_executable
+            )
+            if not path.is_file() or path.read_bytes() != data or not mode_matches:
                 mismatches.append(destination)
         if mismatches:
             raise HarnessError(
@@ -378,6 +414,11 @@ def apply_transaction(
             staged = stage / destination
             staged.parent.mkdir(parents=True, exist_ok=True)
             staged.write_bytes(data)
+            receipt_files = new_lock.get("files")
+            assert isinstance(receipt_files, dict)
+            metadata = receipt_files[destination]
+            assert isinstance(metadata, dict)
+            staged.chmod(0o755 if metadata.get("executable", False) else 0o644)
         write_json(stage / LOCK_NAME, new_lock)
 
         old_paths: set[str] = set()

@@ -50,6 +50,7 @@ class HarnessTests(unittest.TestCase):
                 "layer": "core",
                 "profile": None,
                 "templated": True,
+                "executable": True,
                 "sha256": sha((self.release / "core/rule.md").read_bytes()),
             },
             {
@@ -58,6 +59,7 @@ class HarnessTests(unittest.TestCase):
                 "layer": "profile",
                 "profile": "csharp-fintech",
                 "templated": False,
+                "executable": False,
                 "sha256": sha((self.release / "profile/gate.md").read_bytes()),
             },
         ]
@@ -132,6 +134,25 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(2, self.run_cli("check", "--project", str(self.project)).returncode)
         self.assertEqual(2, self.run_cli("diff", "--project", str(self.project)).returncode)
 
+    def test_check_detects_and_sync_repairs_mode_drift(self) -> None:
+        self.assertEqual(0, self.init().returncode)
+        path = self.project / "docs/governance/rule.md"
+        self.assertTrue(path.stat().st_mode & 0o111)
+        path.chmod(0o644)
+        self.assertEqual(2, self.run_cli("check", "--project", str(self.project)).returncode)
+        result = self.run_cli(
+            "sync",
+            "--project",
+            str(self.project),
+            "--to",
+            self.version,
+            "--from-dir",
+            str(self.release),
+            "--force-theirs",
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertTrue(path.stat().st_mode & 0o111)
+
     def test_sync_refuses_drift_without_mutation(self) -> None:
         self.assertEqual(0, self.init().returncode)
         path = self.project / "docs/governance/rule.md"
@@ -199,6 +220,7 @@ class HarnessTests(unittest.TestCase):
                 "layer": "core",
                 "profile": None,
                 "templated": False,
+                "executable": False,
                 "sha256": sha(added.read_bytes()),
             }
         )
@@ -232,6 +254,7 @@ class HarnessTests(unittest.TestCase):
                 "layer": "core",
                 "profile": None,
                 "templated": False,
+                "executable": False,
                 "sha256": sha(added.read_bytes()),
             }
         )
@@ -265,6 +288,17 @@ class HarnessTests(unittest.TestCase):
         path = self.project / "docs/governance/rule.md"
         path.parent.mkdir(parents=True)
         path.write_text("wrong\n", encoding="utf-8")
+        self.assertEqual(3, self.init("--adopt-existing").returncode)
+        self.assertFalse((self.project / ".harness.lock").exists())
+
+    def test_adopt_existing_requires_exact_mode(self) -> None:
+        rule = self.project / "docs/governance/rule.md"
+        profile = self.project / "docs/governance/csharp.md"
+        rule.parent.mkdir(parents=True)
+        rule.write_text("Golden=requirements/golden.md\n", encoding="utf-8")
+        profile.write_text("profile\n", encoding="utf-8")
+        rule.chmod(0o644)
+        profile.chmod(0o644)
         self.assertEqual(3, self.init("--adopt-existing").returncode)
         self.assertFalse((self.project / ".harness.lock").exists())
 
@@ -354,6 +388,7 @@ class HarnessTests(unittest.TestCase):
                 "layer": "core",
                 "profile": None,
                 "templated": False,
+                "executable": False,
                 "sha256": sha(blocked_source.read_bytes()),
             }
         )

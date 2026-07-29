@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.0-rc.7 — 2026-07-29
+
+- Record executable mode in release entries and project receipts.
+- Apply executable mode transactionally and detect mode-only drift offline.
+- Refuse `init --adopt-existing` when content matches but executable mode does
+  not.
+
 ## v0.1.0-rc.6 — 2026-07-29
 
 - Add lifecycle frontmatter to all fourteen canonical rules so consumer

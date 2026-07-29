@@ -76,7 +76,7 @@
       "destination": "docs/governance/rules/bdd-format.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:ef22669080c7d282e490733865485679a58d02b08c8f4414c9ab3d5fbc236435",
+      "sha256": "sha256:8ea3f801aa892f4a00a3a6e985d1b80373351b694d957948b9abb586022f9b94",
       "source": "core/rules/bdd-format.md",
       "templated": false
     },
@@ -196,7 +196,7 @@
       "destination": "scripts/harness.py",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:95cecf33d07c283a5d1d3fb150df0cbc23b9b0213faa616c464cf9bcf13d7f21",
+      "sha256": "sha256:7dd12cbecf90dfbb2c816b76884a725152bffc3874a662d72e35bd8eee14cc20",
       "source": "harness.py",
       "templated": false
     },
@@ -213,5 +213,5 @@
     "golden_sample"
   ],
   "schema_version": 1,
-  "version": "v0.1.0-rc.3"
+  "version": "v0.1.0-rc.4"
 }

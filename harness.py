@@ -640,13 +640,26 @@ def command_sync(args: argparse.Namespace) -> int:
         raise HarnessError("lock source is invalid")
     profiles, params, overrides = lock_settings(old_lock)
     current_drift = drift(project, old_lock)
-    if current_drift and not args.force_theirs:
-        print_drift(current_drift)
-        raise HarnessError("local drift blocks sync; use adopt or explicitly --force-theirs")
     release: Release | None = None
     try:
         release = acquire_release(source, args.to, args.from_dir)
         payload, receipt = materialize(release, profiles, params, overrides)
+        unexplained = []
+        for finding in current_drift:
+            _, path, _, _ = finding
+            destination = safe_destination(project, path)
+            converged = (
+                path in payload
+                and destination.is_file()
+                and destination.read_bytes() == payload[path]
+            )
+            if not converged:
+                unexplained.append(finding)
+        if unexplained and not args.force_theirs:
+            print_drift(unexplained)
+            raise HarnessError(
+                "local drift blocks sync; use adopt or explicitly --force-theirs"
+            )
         new_lock = build_lock(
             source,
             args.to,

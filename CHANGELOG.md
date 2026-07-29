@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.0-rc.4 — 2026-07-29
+
+- Adopt the pilot-born BDD clarification: Background may contain neither
+  assertions nor irreversible mutations, so scenario order cannot affect
+  results.
+- Let `sync` accept old-lock drift when local bytes already equal the reviewed
+  target release, completing the drift → adopt → release → sync loop without
+  `--force-theirs`.
+
 ## v0.1.0-rc.3 — 2026-07-29
 
 - Make `adopt` patch upstream `origin` paths from the lock instead of consumer

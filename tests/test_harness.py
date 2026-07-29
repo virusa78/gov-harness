@@ -167,6 +167,25 @@ class HarnessTests(unittest.TestCase):
             "Golden=requirements/golden.md\n", path.read_text(encoding="utf-8")
         )
 
+    def test_sync_accepts_local_bytes_already_adopted_by_target(self) -> None:
+        self.assertEqual(0, self.init().returncode)
+        target = self.release / "profile/gate.md"
+        target.write_text("adopted upstream\n", encoding="utf-8")
+        self.write_manifest()
+        local = self.project / "docs/governance/csharp.md"
+        local.write_text("adopted upstream\n", encoding="utf-8")
+        result = self.run_cli(
+            "sync",
+            "--project",
+            str(self.project),
+            "--to",
+            self.version,
+            "--from-dir",
+            str(self.release),
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(0, self.run_cli("check", "--project", str(self.project)).returncode)
+
     def test_override_is_never_owned_or_modified(self) -> None:
         local = self.project / "docs/governance/rule.md"
         local.parent.mkdir(parents=True)

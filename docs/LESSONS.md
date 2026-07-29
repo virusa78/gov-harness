@@ -32,3 +32,18 @@ destination-to-origin mapping. Rendered templates are refused because a tool
 cannot infer which part of a local value should become a generic parameter.
 
 Source: pre-pilot full-loop review, `v0.1.0-rc.2`, ADR-0001.
+
+## L3 — Old-lock drift can already be the reviewed target (2026-07-29)
+
+Symptom: after a pilot improvement was accepted upstream, ordinary sync would
+still refuse because it compared local bytes only with the old lock.
+
+Cause: drift classification happened before the target release was available,
+so the tool could not distinguish an unexplained edit from already-converged
+reviewed bytes.
+
+Rule: sync refusal compares local bytes with both the old receipt and the
+integrity-validated target; exact target bytes are explained, everything else
+still fails closed.
+
+Source: persistent pilot adopt loop, ADR-0002.

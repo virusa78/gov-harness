@@ -76,7 +76,7 @@
       "destination": "docs/governance/rules/bdd-format.md",
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:8ea3f801aa892f4a00a3a6e985d1b80373351b694d957948b9abb586022f9b94",
+      "sha256": "sha256:d7e45966e0a8477031c6f9c291ea46319e54affaff5c0f8a410ab28902658ac1",
       "source": "core/rules/bdd-format.md",
       "templated": false
     },
@@ -213,5 +213,5 @@
     "golden_sample"
   ],
   "schema_version": 1,
-  "version": "v0.1.0-rc.4"
+  "version": "v0.1.0-rc.5"
 }

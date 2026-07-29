@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.0-rc.5 — 2026-07-29
+
+- Accept the second pilot-born BDD clarification: shared Background setup must
+  be idempotent.
+- Use this release to prove RC4 target-convergence through ordinary `sync`
+  without `--force-theirs`.
+
 ## v0.1.0-rc.4 — 2026-07-29
 
 - Adopt the pilot-born BDD clarification: Background may contain neither

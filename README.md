@@ -27,7 +27,7 @@ dedicated review.
 ```bash
 python3 -m unittest -v tests/test_harness.py
 python3 scripts/verify_source.py
-python3 scripts/build_manifest.py --version v0.1.0-rc.4 --check
+python3 scripts/build_manifest.py --version v0.1.0-rc.5 --check
 ```
 
 ## Release status

@@ -44,7 +44,8 @@ Feature: <short capability name>
 - **Feature** — the capability. Mirrors the `.requirements.md` scope line.
 - **Background** — preconditions true for all scenarios (stack up, seed applied,
   clean outbox/inbox). Never put an assertion or an irreversible mutation in
-  Background; scenario order must not affect the result.
+  Background; scenario order must not affect the result. Any setup performed
+  there must be idempotent.
 - **Scenario** — exactly **one** behaviour with a single `When`. If you need two
   actions to reach the outcome, the first is a `Given`.
 - **Scenario Outline / Examples** — use for the *same* behaviour across a data

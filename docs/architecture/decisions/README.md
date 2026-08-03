@@ -10,3 +10,4 @@
 | [ADR-0004](0004-release-growth-cannot-overwrite-unmanaged-paths.md) | Release growth cannot silently overwrite unmanaged paths | Accepted |
 | [ADR-0005](0005-receipts-cover-executable-mode.md) | Receipt integrity includes executable mode | Accepted |
 | [ADR-0006](0006-generated-documents-have-distinct-lifecycle.md) | Generated documents have a distinct lifecycle | Accepted |
+| [ADR-0007](0007-stack-content-lives-in-exclusive-profile-families.md) | Stack content lives in mutually exclusive profile families; the menu is manifest data | Accepted |

@@ -13,9 +13,51 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "release/manifest.json"
 
+# Every profile must be described here: the stack menu (`harness.py select`)
+# renders exactly these lines. A discovered profile without a description or a
+# description without a profile directory fails the build.
+PROFILE_INFO = {
+    "adr": "ADR workflow — requires docs/architecture/decisions/ in the consumer",
+    "lang/csharp-fintech": "C# financial-backend skills",
+    "testing/python-tools": "Python verification-script discipline (dev tooling)",
+    "transport/kafka": "Kafka/Redpanda messaging — offset, outbox and DLQ discipline",
+    "transport/nats": "NATS/JetStream messaging — ack, redelivery and DLQ discipline",
+}
+
+# Subtrees the harness owns outright in a consumer project: anything inside
+# them that the current receipt does not own is pruned on init --reinstall/sync.
+MANAGED_ROOTS = [".agents/skills"]
+
 
 def digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def discover_profiles() -> dict[str, Path]:
+    """Map profile name -> profile directory.
+
+    A profile directory is one that contains skills/ or rules/. Directories
+    directly under profiles/ are standalone profiles; one level deeper they
+    are family/variant profiles. Anything else is an error.
+    """
+    profiles: dict[str, Path] = {}
+    for first in sorted((ROOT / "profiles").iterdir()):
+        if not first.is_dir():
+            raise RuntimeError(f"unexpected file under profiles/: {first.name}")
+        if (first / "skills").is_dir() or (first / "rules").is_dir():
+            profiles[first.name] = first
+            continue
+        variants = sorted(path for path in first.iterdir() if path.is_dir())
+        if not variants:
+            raise RuntimeError(f"empty profile family: profiles/{first.name}")
+        for variant in variants:
+            if not ((variant / "skills").is_dir() or (variant / "rules").is_dir()):
+                raise RuntimeError(
+                    f"profile variant lacks skills/ or rules/: "
+                    f"profiles/{first.name}/{variant.name}"
+                )
+            profiles[f"{first.name}/{variant.name}"] = variant
+    return profiles
 
 
 def entries() -> list[dict[str, object]]:
@@ -66,19 +108,34 @@ def entries() -> list[dict[str, object]]:
             mappings.append(
                 (path, f".agents/skills/{rel}", "core", None, False)
             )
-    profile_root = ROOT / "profiles/csharp-fintech/skills"
-    for path in sorted(profile_root.glob("**/*")):
-        if path.is_file():
-            rel = path.relative_to(profile_root).as_posix()
-            mappings.append(
-                (
-                    path,
-                    f".agents/skills/{rel}",
-                    "profile",
-                    "csharp-fintech",
-                    False,
+    profiles = discover_profiles()
+    if set(profiles) != set(PROFILE_INFO):
+        missing = sorted(set(profiles) - set(PROFILE_INFO))
+        stale = sorted(set(PROFILE_INFO) - set(profiles))
+        raise RuntimeError(
+            f"PROFILE_INFO out of date: undescribed={missing} described-but-absent={stale}"
+        )
+    for name, base in sorted(profiles.items()):
+        skills_root = base / "skills"
+        if skills_root.is_dir():
+            for path in sorted(skills_root.glob("**/*")):
+                if path.is_file():
+                    rel = path.relative_to(skills_root).as_posix()
+                    mappings.append(
+                        (path, f".agents/skills/{rel}", "profile", name, False)
+                    )
+        rules_root = base / "rules"
+        if rules_root.is_dir():
+            for path in sorted(rules_root.glob("*.md")):
+                mappings.append(
+                    (
+                        path,
+                        f"docs/governance/rules/{path.name}",
+                        "profile",
+                        name,
+                        False,
+                    )
                 )
-            )
     result = []
     for source, destination, layer, profile, templated in mappings:
         if not source.is_file():
@@ -94,14 +151,21 @@ def entries() -> list[dict[str, object]]:
                 "sha256": digest(source),
             }
         )
-    return sorted(result, key=lambda item: str(item["destination"]))
+    return sorted(
+        result, key=lambda item: (str(item["destination"]), str(item["profile"]))
+    )
 
 
 def manifest(version: str) -> dict[str, object]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "version": version,
         "required_params": ["golden_sample"],
+        "managed_roots": list(MANAGED_ROOTS),
+        "profile_info": [
+            {"name": name, "description": PROFILE_INFO[name]}
+            for name in sorted(PROFILE_INFO)
+        ],
         "files": entries(),
     }
 

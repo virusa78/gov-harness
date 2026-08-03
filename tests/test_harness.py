@@ -425,3 +425,191 @@ class HarnessTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StackProfileTests(unittest.TestCase):
+    """Manifest schema 2: families, shared destinations, fanout, select menu."""
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.release = self.root / "release-source"
+        self.project = self.root / "project"
+        for relative in (
+            "release",
+            "core/rules",
+            "profiles/transport/nats",
+            "profiles/transport/kafka",
+            "profiles/lang/cpp",
+        ):
+            (self.release / relative).mkdir(parents=True)
+        self.project.mkdir()
+        (self.release / "core/rules/ears.md").write_text("neutral\n", encoding="utf-8")
+        (self.release / "profiles/transport/nats/io.md").write_text(
+            "nats ack\n", encoding="utf-8"
+        )
+        (self.release / "profiles/transport/kafka/io.md").write_text(
+            "kafka offset\n", encoding="utf-8"
+        )
+        (self.release / "profiles/lang/cpp/skill.md").write_text(
+            "Run {{invoke}} for C++\n", encoding="utf-8"
+        )
+        self.version = "v0.2.0-test"
+        self.write_manifest()
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def entry(self, source: str, destination: str, **overrides: object) -> dict[str, object]:
+        item: dict[str, object] = {
+            "source": source,
+            "destination": destination,
+            "layer": "core",
+            "profile": None,
+            "templated": False,
+            "executable": False,
+            "sha256": sha((self.release / source).read_bytes()),
+        }
+        item.update(overrides)
+        return item
+
+    def write_manifest(self) -> None:
+        manifest = {
+            "schema_version": 2,
+            "version": self.version,
+            "required_params": [],
+            "target_params": ["invoke"],
+            "managed_roots": [".agents/skills", ".claude/skills", ".cursor/skills"],
+            "profile_info": [
+                {"name": "transport/nats", "description": "NATS"},
+                {"name": "transport/kafka", "description": "Kafka"},
+                {"name": "lang/cpp", "description": "C++"},
+            ],
+            "targets": [
+                {"name": "claude", "root": ".claude", "params": {"invoke": "/x:y"}},
+                {"name": "cursor", "root": ".cursor", "params": {"invoke": "/x-y"}},
+            ],
+            "files": [
+                self.entry("core/rules/ears.md", "docs/governance/rules/ears.md"),
+                self.entry(
+                    "profiles/transport/nats/io.md",
+                    "docs/governance/rules/io.md",
+                    layer="profile",
+                    profile="transport/nats",
+                ),
+                self.entry(
+                    "profiles/transport/kafka/io.md",
+                    "docs/governance/rules/io.md",
+                    layer="profile",
+                    profile="transport/kafka",
+                ),
+                self.entry(
+                    "profiles/lang/cpp/skill.md",
+                    "{{target_root}}/skills/lang/SKILL.md",
+                    layer="profile",
+                    profile="lang/cpp",
+                    fanout=True,
+                    templated=True,
+                ),
+            ],
+        }
+        (self.release / "release/manifest.json").write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+    def run_cli(self, *arguments: str, stdin: str = "") -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(HARNESS), *arguments],
+            text=True,
+            capture_output=True,
+            timeout=10,
+            check=False,
+            input=stdin,
+        )
+
+    def init(self, *extra: str) -> subprocess.CompletedProcess[str]:
+        return self.run_cli(
+            "init",
+            "--project",
+            str(self.project),
+            "--source",
+            "https://github.com/example/harness",
+            "--to",
+            self.version,
+            "--from-dir",
+            str(self.release),
+            *extra,
+        )
+
+    def test_family_exclusivity_is_refused(self) -> None:
+        result = self.init(
+            "--profile", "transport/nats", "--profile", "transport/kafka"
+        )
+        self.assertEqual(result.returncode, 3)
+        self.assertIn("mutually exclusive", result.stderr)
+
+    def test_shared_destination_installs_selected_variant_and_switches(self) -> None:
+        result = self.init("--profile", "transport/nats")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rule = self.project / "docs/governance/rules/io.md"
+        self.assertEqual(rule.read_text(encoding="utf-8"), "nats ack\n")
+        switched = self.run_cli(
+            "select",
+            "--project",
+            str(self.project),
+            "--source",
+            "https://github.com/example/harness",
+            "--to",
+            self.version,
+            "--from-dir",
+            str(self.release),
+            "--choose",
+            "transport=kafka",
+            "--reinstall",
+        )
+        self.assertEqual(switched.returncode, 0, switched.stderr)
+        self.assertEqual(rule.read_text(encoding="utf-8"), "kafka offset\n")
+        check = self.run_cli("check", "--project", str(self.project))
+        self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+
+    def test_fanout_renders_per_target_dialect(self) -> None:
+        result = self.init("--profile", "lang/cpp")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        claude = self.project / ".claude/skills/lang/SKILL.md"
+        cursor = self.project / ".cursor/skills/lang/SKILL.md"
+        self.assertEqual(claude.read_text(encoding="utf-8"), "Run /x:y for C++\n")
+        self.assertEqual(cursor.read_text(encoding="utf-8"), "Run /x-y for C++\n")
+
+    def test_interactive_menu_installs_choice(self) -> None:
+        result = self.run_cli(
+            "select",
+            "--project",
+            str(self.project),
+            "--source",
+            "https://github.com/example/harness",
+            "--to",
+            self.version,
+            "--from-dir",
+            str(self.release),
+            stdin="0\n2\n",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rule = self.project / "docs/governance/rules/io.md"
+        self.assertEqual(rule.read_text(encoding="utf-8"), "nats ack\n")
+        self.assertNotIn(".claude", {p.name for p in self.project.iterdir()})
+
+    def test_managed_root_stray_is_reported_and_pruned(self) -> None:
+        result = self.init("--profile", "lang/cpp")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        stray = self.project / ".claude/skills/rogue/SKILL.md"
+        stray.parent.mkdir(parents=True)
+        stray.write_text("junk\n", encoding="utf-8")
+        check = self.run_cli("check", "--project", str(self.project))
+        self.assertEqual(check.returncode, 2)
+        self.assertIn("stray: .claude/skills/rogue/SKILL.md", check.stdout)
+        reinstall = self.init("--profile", "lang/cpp", "--reinstall")
+        self.assertEqual(reinstall.returncode, 0, reinstall.stderr)
+        self.assertFalse(stray.exists())
+        self.assertFalse(stray.parent.exists())
+        clean = self.run_cli("check", "--project", str(self.project))
+        self.assertEqual(clean.returncode, 0, clean.stdout + clean.stderr)

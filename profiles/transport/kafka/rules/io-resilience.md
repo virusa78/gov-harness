@@ -4,7 +4,7 @@ class: state
 status: active
 owner: governance-harness
 updated: 2026-07-29
-sources: [core/rules/io-resilience.md]
+sources: [profiles/transport/kafka/rules/io-resilience.md]
 ---
 
 # I/O Resilience — Binding Agent Rule

@@ -75,7 +75,7 @@ Feature: <short capability name>
 ## Step-writing rules
 
 1. **Observable, not internal.** Steps assert things a gate can see from outside:
-   HTTP status, a response field, a DB row, a Kafka message, a measured latency.
+   HTTP status, a response field, a DB row, a broker message, a measured latency.
    Never "the service correctly processes" — say *what is observably true after*.
 2. **Concrete anchors.** Use the real endpoint, topic, status code, table, and
    SLA from the design doc — not paraphrase. `Then the response status is 403`,

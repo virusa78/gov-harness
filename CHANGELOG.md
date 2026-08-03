@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.2.0-rc.1 — 2026-08-03
+
+- Manifest schema 2: profile families (`family/variant`), mutually exclusive
+  selection, shared destinations between variants of one family, targets with
+  per-target parameter overlays, per-file fan-out, managed roots with
+  transactional stray pruning, and `profile_info` menu metadata (ADR-0007).
+- `harness.py select`: interactive stack menu rendered entirely from manifest
+  data; `--choose family=variant` non-interactive form; `--print-only`;
+  `init --reinstall` converges an installed project.
+- Move stack content out of core: `io-resilience` ships as
+  `transport/nats` / `transport/kafka` variants of one canonical rule path;
+  `python-testing-gate` becomes `testing/python-tools` with its foreign
+  repository claims neutralized; `adr` becomes the standalone `adr` profile;
+  `csharp-fintech` becomes `lang/csharp-fintech`.
+- Fix the dangling source pointer in the `karpathy` skill and genericize the
+  broker example in `bdd-format`.
+- Schema 1 releases install exactly as before; their locks stay byte-identical.
+
 ## v0.1.0-rc.8 — 2026-07-29
 
 - Adopt the consumer-born generated-document lifecycle.

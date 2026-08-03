@@ -3,28 +3,28 @@
     {
       "destination": ".agents/skills/adr/SKILL.md",
       "executable": false,
-      "layer": "core",
-      "profile": null,
+      "layer": "profile",
+      "profile": "adr",
       "sha256": "sha256:71eae508c60a83f50aeefc0d2d7eebdc8da55bb42e9719a40846abae16390206",
-      "source": "core/skills/adr/SKILL.md",
+      "source": "profiles/adr/skills/adr/SKILL.md",
       "templated": false
     },
     {
       "destination": ".agents/skills/backend-code-review-csharp/SKILL.md",
       "executable": false,
       "layer": "profile",
-      "profile": "csharp-fintech",
+      "profile": "lang/csharp-fintech",
       "sha256": "sha256:c0f7f1f390267ee82d8e1698c1f25672012aca16c6e1102dd3656022f31e6d56",
-      "source": "profiles/csharp-fintech/skills/backend-code-review-csharp/SKILL.md",
+      "source": "profiles/lang/csharp-fintech/skills/backend-code-review-csharp/SKILL.md",
       "templated": false
     },
     {
       "destination": ".agents/skills/csharp-backend-build-gate/SKILL.md",
       "executable": false,
       "layer": "profile",
-      "profile": "csharp-fintech",
+      "profile": "lang/csharp-fintech",
       "sha256": "sha256:dfc442c9c67a4c8df4428e52bd55f6e9e979803a9cc8ebdd0dc4d3c67f349e79",
-      "source": "profiles/csharp-fintech/skills/csharp-backend-build-gate/SKILL.md",
+      "source": "profiles/lang/csharp-fintech/skills/csharp-backend-build-gate/SKILL.md",
       "templated": false
     },
     {
@@ -32,17 +32,17 @@
       "executable": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:f11a8fce06b1969ba7eedac76b1b989d7c72f2f6bf66dafb0934917cb129abc0",
+      "sha256": "sha256:82d0d8f711bba023a17e1b3e517caee5414ba1cab4fabc980b314e71b72b3075",
       "source": "core/skills/karpathy/SKILL.md",
       "templated": false
     },
     {
       "destination": ".agents/skills/python-testing-gate/SKILL.md",
       "executable": false,
-      "layer": "core",
-      "profile": null,
-      "sha256": "sha256:8f4a5775f648f2760203071a63fd873cb9e4a5ee4d8760ba8df8c5c178f823ea",
-      "source": "core/skills/python-testing-gate/SKILL.md",
+      "layer": "profile",
+      "profile": "testing/python-tools",
+      "sha256": "sha256:4e2e954d1b4461d9f1b47512485fb4044b679c10637182a3bf45140a38575016",
+      "source": "profiles/testing/python-tools/skills/python-testing-gate/SKILL.md",
       "templated": false
     },
     {
@@ -86,7 +86,7 @@
       "executable": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:d018d414f87067fabed2cee4b00a6c45ecc9f9e1d642b80c38e708f7aa7bd601",
+      "sha256": "sha256:77bb7543db5a57024031c666fd92eb9dca0f7e371633459b5b0409abf40d180f",
       "source": "core/rules/bdd-format.md",
       "templated": false
     },
@@ -165,10 +165,19 @@
     {
       "destination": "docs/governance/rules/io-resilience.md",
       "executable": false,
-      "layer": "core",
-      "profile": null,
-      "sha256": "sha256:b2082d13d244bc56131a8bde5286a306eeb00fb007bab960e2d274765422e97f",
-      "source": "core/rules/io-resilience.md",
+      "layer": "profile",
+      "profile": "transport/kafka",
+      "sha256": "sha256:59467e53b892dfffcefc1cc5cd86dd257a31271300a9211611f620ead9b89cde",
+      "source": "profiles/transport/kafka/rules/io-resilience.md",
+      "templated": false
+    },
+    {
+      "destination": "docs/governance/rules/io-resilience.md",
+      "executable": false,
+      "layer": "profile",
+      "profile": "transport/nats",
+      "sha256": "sha256:fa40e31022829fc69154170b6fea17ef292e6cbc75348131a8451d0fd7c7b90a",
+      "source": "profiles/transport/nats/rules/io-resilience.md",
       "templated": false
     },
     {
@@ -221,7 +230,7 @@
       "executable": true,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:a17cb9b2bd5ef1615d60964194457a511a619fb7d0f8f3b65ee68bdcc0333e18",
+      "sha256": "sha256:99fd71b9544a3fe99b47c1bba20a709ec3c567c9b2eaea71777e84397841b61f",
       "source": "harness.py",
       "templated": false
     },
@@ -253,9 +262,34 @@
       "templated": false
     }
   ],
+  "managed_roots": [
+    ".agents/skills"
+  ],
+  "profile_info": [
+    {
+      "description": "ADR workflow \u2014 requires docs/architecture/decisions/ in the consumer",
+      "name": "adr"
+    },
+    {
+      "description": "C# financial-backend skills",
+      "name": "lang/csharp-fintech"
+    },
+    {
+      "description": "Python verification-script discipline (dev tooling)",
+      "name": "testing/python-tools"
+    },
+    {
+      "description": "Kafka/Redpanda messaging \u2014 offset, outbox and DLQ discipline",
+      "name": "transport/kafka"
+    },
+    {
+      "description": "NATS/JetStream messaging \u2014 ack, redelivery and DLQ discipline",
+      "name": "transport/nats"
+    }
+  ],
   "required_params": [
     "golden_sample"
   ],
-  "schema_version": 1,
-  "version": "v0.1.0-rc.8"
+  "schema_version": 2,
+  "version": "v0.2.0-rc.1"
 }

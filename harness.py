@@ -34,10 +34,20 @@ MANIFEST_NAME = "release/manifest.json"
 ADOPT_DIR = ".artifacts/harness-adopt"
 TOKEN_ENV = "GOV_HARNESS_TOKEN"
 PLACEHOLDER = __import__("re").compile(r"\{\{([a-z][a-z0-9_]*)\}\}")
+TARGET_NAME = __import__("re").compile(r"[a-z][a-z0-9-]*")
+PROFILE_NAME = __import__("re").compile(r"[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)?")
+TARGET_ROOT_PARAM = "target_root"
 
 
 class HarnessError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class Target:
+    name: str
+    root: str
+    params: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -49,6 +59,8 @@ class ReleaseFile:
     templated: bool
     executable: bool
     sha256: str
+    target: str | None = None
+    params: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +70,9 @@ class Release:
     files: tuple[ReleaseFile, ...]
     archive_sha256: str
     cleanup: Path | None = None
+    targets: tuple[Target, ...] = ()
+    managed_roots: tuple[str, ...] = ()
+    profile_info: tuple[tuple[str, str], ...] = ()
 
 
 def digest_bytes(value: bytes) -> str:
@@ -104,10 +119,174 @@ def string_list(value: object, label: str) -> list[str]:
     return list(value)
 
 
+def parse_targets(manifest: dict[str, object]) -> tuple[list[Target], list[str]]:
+    declared = string_list(manifest.get("target_params", []), "target_params")
+    if len(declared) != len(set(declared)):
+        raise HarnessError("target_params contains duplicates")
+    for name in declared:
+        if not PLACEHOLDER.fullmatch("{{" + name + "}}"):
+            raise HarnessError(f"invalid target parameter name: {name!r}")
+    if TARGET_ROOT_PARAM in declared:
+        raise HarnessError(f"{TARGET_ROOT_PARAM} is reserved and set by the installer")
+    global_params = set(string_list(manifest.get("required_params", []), "required_params"))
+    if overlap := sorted(global_params & set(declared)):
+        raise HarnessError(f"target_params overlap required_params: {', '.join(overlap)}")
+
+    raw = manifest.get("targets", [])
+    if not isinstance(raw, list):
+        raise HarnessError("manifest targets must be a list")
+    targets: list[Target] = []
+    names: set[str] = set()
+    roots: set[str] = set()
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise HarnessError(f"targets[{index}] must be an object")
+        name = item.get("name")
+        if not isinstance(name, str) or not TARGET_NAME.fullmatch(name):
+            raise HarnessError(f"invalid target name: {name!r}")
+        if name in names:
+            raise HarnessError(f"duplicate target: {name}")
+        names.add(name)
+        target_root = normalized_relative(item.get("root"), f"targets[{index}].root")
+        if target_root in roots:
+            raise HarnessError(f"duplicate target root: {target_root}")
+        roots.add(target_root)
+        raw_params = item.get("params", {})
+        if not isinstance(raw_params, dict) or not all(
+            isinstance(key, str) and isinstance(value, str)
+            for key, value in raw_params.items()
+        ):
+            raise HarnessError(f"target {name} params must be a string-to-string object")
+        if set(raw_params) != set(declared):
+            raise HarnessError(
+                f"target {name} must declare exactly target_params: {', '.join(sorted(declared))}"
+            )
+        targets.append(Target(name, target_root, dict(raw_params)))
+    if not declared and not targets:
+        return [], []
+    if declared and not targets:
+        raise HarnessError("target_params declared without any targets")
+    return targets, declared
+
+
+def parse_managed_roots(manifest: dict[str, object]) -> list[str]:
+    raw = string_list(manifest.get("managed_roots", []), "managed_roots")
+    roots = [normalized_relative(item, "managed_roots entry") for item in raw]
+    if len(roots) != len(set(roots)):
+        raise HarnessError("managed_roots contains duplicates")
+    for outer in roots:
+        for inner in roots:
+            if outer != inner and inner.startswith(outer + "/"):
+                raise HarnessError(f"managed root {inner} nests inside {outer}")
+    return sorted(roots)
+
+
+def profile_family(name: str | None) -> str | None:
+    if name and "/" in name:
+        return name.split("/", 1)[0]
+    return None
+
+
+def parse_profile_info(
+    manifest: dict[str, object], declared: set[str]
+) -> list[tuple[str, str]]:
+    raw = manifest.get("profile_info", [])
+    if not isinstance(raw, list):
+        raise HarnessError("profile_info must be a list")
+    seen: set[str] = set()
+    info: list[tuple[str, str]] = []
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise HarnessError(f"profile_info[{index}] must be an object")
+        name = item.get("name")
+        description = item.get("description")
+        if not isinstance(name, str) or not isinstance(description, str):
+            raise HarnessError(f"profile_info[{index}] needs string name and description")
+        if name in seen:
+            raise HarnessError(f"profile_info duplicates profile: {name}")
+        if name not in declared:
+            raise HarnessError(f"profile_info describes unknown profile: {name}")
+        seen.add(name)
+        info.append((name, description))
+    return info
+
+
+def within_root(path: str, root: str) -> bool:
+    return path == root or path.startswith(root + "/")
+
+
+def protected_by_override(path: str, overrides: Iterable[str]) -> bool:
+    """An override protects its own path and the directory it names.
+
+    Overrides are written as `<skills_root>/<name>/SKILL.md`, but a skill also
+    owns its sibling assets (`examples/`, `templates/`). Protecting the parent
+    directory keeps those from being pruned as strays.
+    """
+    if matches_override(path, overrides):
+        return True
+    for pattern in overrides:
+        if any(character in pattern for character in "*?"):
+            continue
+        parent = PurePosixPath(pattern).parent.as_posix()
+        if parent not in {"", "."} and within_root(path, parent):
+            return True
+    return False
+
+
+def stray_files(
+    project: Path,
+    managed_roots: Iterable[str],
+    keep: Iterable[str],
+    overrides: Iterable[str],
+) -> list[str]:
+    kept = set(keep)
+    found: set[str] = set()
+    for root in managed_roots:
+        base = project / normalized_relative(root, "managed root")
+        if not base.is_dir() or base.is_symlink():
+            continue
+        for path in base.rglob("*"):
+            relative = path.relative_to(project).as_posix()
+            if path.is_symlink():
+                raise HarnessError(f"refusing to prune through symlink: {relative}")
+            if not path.is_file():
+                continue
+            if relative in kept or relative == LOCK_NAME:
+                continue
+            if protected_by_override(relative, overrides):
+                continue
+            found.add(relative)
+    return sorted(found)
+
+
+def prune_empty_directories(project: Path, managed_roots: Iterable[str]) -> None:
+    for root in managed_roots:
+        base = project / normalized_relative(root, "managed root")
+        if not base.is_dir() or base.is_symlink():
+            continue
+        candidates = [path for path in base.rglob("*") if path.is_dir()] + [base]
+        for path in sorted(candidates, key=lambda item: len(item.parts), reverse=True):
+            if path.is_dir() and not path.is_symlink() and not any(path.iterdir()):
+                path.rmdir()
+        cursor = base.parent
+        while cursor != project and project in cursor.parents:
+            if not cursor.is_dir() or cursor.is_symlink() or any(cursor.iterdir()):
+                break
+            cursor.rmdir()
+            cursor = cursor.parent
+
+
 def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Release:
     manifest = read_json(root / MANIFEST_NAME, "release manifest")
-    if manifest.get("schema_version") != 1:
+    schema = manifest.get("schema_version")
+    if schema not in {1, 2}:
         raise HarnessError("unsupported release manifest schema")
+    targets, _target_params = parse_targets(manifest)
+    if schema == 1 and targets:
+        raise HarnessError("manifest targets require schema_version 2")
+    managed_roots = parse_managed_roots(manifest)
+    if schema == 1 and managed_roots:
+        raise HarnessError("manifest managed_roots require schema_version 2")
     if manifest.get("version") != expected_version:
         raise HarnessError(
             f"release version mismatch: expected {expected_version}, got {manifest.get('version')}"
@@ -116,7 +295,7 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
     if not isinstance(raw_files, list) or not raw_files:
         raise HarnessError("release manifest files must be a non-empty list")
     files: list[ReleaseFile] = []
-    destinations: set[str] = set()
+    destinations: dict[str, tuple[str, str | None]] = {}
     for index, raw in enumerate(raw_files):
         if not isinstance(raw, dict):
             raise HarnessError(f"manifest files[{index}] must be an object")
@@ -124,11 +303,23 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
         destination = normalized_relative(
             raw.get("destination"), f"files[{index}].destination"
         )
-        if destination == LOCK_NAME:
-            raise HarnessError("release may not own the project lock")
-        if destination in destinations:
-            raise HarnessError(f"duplicate destination: {destination}")
-        destinations.add(destination)
+        fanout = raw.get("fanout", False)
+        if not isinstance(fanout, bool):
+            raise HarnessError(f"fanout flag for {destination} must be boolean")
+        marker = "{{" + TARGET_ROOT_PARAM + "}}"
+        if fanout:
+            if schema != 2:
+                raise HarnessError(f"fanout requires schema_version 2: {destination}")
+            if not targets:
+                raise HarnessError(f"fanout file has no targets: {destination}")
+            if not destination.startswith(marker + "/"):
+                raise HarnessError(
+                    f"fanout destination must start with {marker}/: {destination}"
+                )
+        elif marker in destination:
+            raise HarnessError(
+                f"destination uses {marker} without fanout: {destination}"
+            )
         layer = raw.get("layer")
         if layer not in {"core", "profile"}:
             raise HarnessError(f"invalid layer for {destination}: {layer!r}")
@@ -137,6 +328,11 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
             raise HarnessError(f"core file {destination} may not declare a profile")
         if layer == "profile" and not isinstance(profile, str):
             raise HarnessError(f"profile file {destination} must declare a profile")
+        if schema == 2 and layer == "profile" and not PROFILE_NAME.fullmatch(profile):
+            raise HarnessError(
+                f"invalid profile name for {destination}: {profile!r} "
+                "(want family/variant or plain lowercase name)"
+            )
         templated = raw.get("templated", False)
         if not isinstance(templated, bool):
             raise HarnessError(f"templated flag for {destination} must be boolean")
@@ -154,24 +350,78 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
             raise HarnessError(
                 f"source digest mismatch for {source}: expected {sha256}, got {actual}"
             )
-        files.append(
-            ReleaseFile(
-                source,
-                destination,
-                str(layer),
-                profile,
-                templated,
-                executable,
-                sha256,
+        expansions: list[tuple[str, str | None, dict[str, str] | None]]
+        if fanout:
+            expansions = []
+            for target in targets:
+                expanded = normalized_relative(
+                    destination.replace(marker, target.root, 1),
+                    f"files[{index}].destination for target {target.name}",
+                )
+                overlay = dict(target.params)
+                overlay[TARGET_ROOT_PARAM] = target.root
+                expansions.append((expanded, target.name, overlay))
+        else:
+            expansions = [(destination, None, None)]
+        for expanded, target_name, overlay in expansions:
+            if expanded == LOCK_NAME:
+                raise HarnessError("release may not own the project lock")
+            existing = destinations.get(expanded)
+            if existing is not None:
+                existing_layer, existing_profile = existing
+                same_family_variants = (
+                    schema == 2
+                    and existing_layer == "profile"
+                    and layer == "profile"
+                    and existing_profile != profile
+                    and profile_family(existing_profile) is not None
+                    and profile_family(existing_profile) == profile_family(profile)
+                )
+                if not same_family_variants:
+                    raise HarnessError(f"duplicate destination: {expanded}")
+            else:
+                destinations[expanded] = (str(layer), profile)
+            files.append(
+                ReleaseFile(
+                    source,
+                    expanded,
+                    str(layer),
+                    profile,
+                    templated,
+                    executable,
+                    sha256,
+                    target_name,
+                    overlay,
+                )
             )
-        )
     required = string_list(manifest.get("required_params", []), "required_params")
     if len(required) != len(set(required)):
         raise HarnessError("required_params contains duplicates")
     for name in required:
         if not PLACEHOLDER.fullmatch("{{" + name + "}}"):
             raise HarnessError(f"invalid parameter name: {name!r}")
-    return Release(root, manifest, tuple(files), archive_sha256)
+    for entry in files:
+        if entry.target is None:
+            continue
+        if not any(within_root(entry.destination, root) for root in managed_roots):
+            raise HarnessError(
+                f"fanout destination is outside every managed root: {entry.destination}"
+            )
+    declared_profiles = {
+        entry.profile for entry in files if entry.layer == "profile" and entry.profile
+    }
+    profile_info = parse_profile_info(manifest, declared_profiles)
+    if schema == 1 and profile_info:
+        raise HarnessError("manifest profile_info requires schema_version 2")
+    return Release(
+        root,
+        manifest,
+        tuple(files),
+        archive_sha256,
+        targets=tuple(targets),
+        managed_roots=tuple(managed_roots),
+        profile_info=tuple(profile_info),
+    )
 
 
 def parse_assignments(values: list[str], label: str) -> dict[str, str]:
@@ -204,28 +454,52 @@ def render(source: bytes, entry: ReleaseFile, params: dict[str, str]) -> bytes:
         text = source.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise HarnessError(f"templated file is not UTF-8: {entry.source}") from exc
+    effective = {**params, **(entry.params or {})}
     names = set(PLACEHOLDER.findall(text))
-    if unknown := sorted(names - set(params)):
+    if unknown := sorted(names - set(effective)):
         raise HarnessError(
             f"template {entry.source} contains undeclared parameters: {', '.join(unknown)}"
         )
-    rendered = PLACEHOLDER.sub(lambda match: params[match.group(1)], text)
+    rendered = PLACEHOLDER.sub(lambda match: effective[match.group(1)], text)
     if PLACEHOLDER.search(rendered):
         raise HarnessError(f"unresolved template parameter in {entry.source}")
     return rendered.encode("utf-8")
 
 
-def selected_files(release: Release, profiles: Iterable[str]) -> list[ReleaseFile]:
+def selected_targets(release: Release, targets: Iterable[str]) -> set[str]:
+    declared = {target.name for target in release.targets}
+    chosen = set(targets)
+    if unknown := sorted(chosen - declared):
+        raise HarnessError(f"unknown target(s): {', '.join(unknown)}")
+    return chosen
+
+
+def selected_files(
+    release: Release, profiles: Iterable[str], targets: Iterable[str] = ()
+) -> list[ReleaseFile]:
     chosen = set(profiles)
     declared = {
         entry.profile for entry in release.files if entry.layer == "profile" and entry.profile
     }
     if unknown := sorted(chosen - declared):
         raise HarnessError(f"unknown profile(s): {', '.join(unknown)}")
+    by_family: dict[str, list[str]] = {}
+    for name in sorted(chosen):
+        family = profile_family(name)
+        if family:
+            by_family.setdefault(family, []).append(name)
+    for family, names in by_family.items():
+        if len(names) > 1:
+            raise HarnessError(
+                f"mutually exclusive profiles selected in family {family}: "
+                + ", ".join(names)
+            )
+    chosen_targets = selected_targets(release, targets)
     return [
         entry
         for entry in release.files
-        if entry.layer == "core" or entry.profile in chosen
+        if (entry.layer == "core" or entry.profile in chosen)
+        and (entry.target is None or entry.target in chosen_targets)
     ]
 
 
@@ -254,15 +528,20 @@ def materialize(
     profiles: list[str],
     params: dict[str, str],
     overrides: list[str],
+    targets: list[str] | None = None,
 ) -> tuple[dict[str, bytes], dict[str, dict[str, object]]]:
     validate_parameters(release, params)
     validate_overrides(overrides)
     payload: dict[str, bytes] = {}
     receipt: dict[str, dict[str, object]] = {}
-    for entry in selected_files(release, profiles):
+    for entry in selected_files(release, profiles, targets or []):
         if matches_override(entry.destination, overrides):
             continue
         data = render((release.root / entry.source).read_bytes(), entry, params)
+        if entry.destination in payload:
+            raise HarnessError(
+                f"selected files collide on destination: {entry.destination}"
+            )
         payload[entry.destination] = data
         receipt[entry.destination] = {
             "origin": entry.source,
@@ -272,6 +551,8 @@ def materialize(
             "executable": entry.executable,
             "sha256": digest_bytes(data),
         }
+        if entry.target is not None:
+            receipt[entry.destination]["target"] = entry.target
     return payload, receipt
 
 
@@ -305,9 +586,13 @@ def load_lock(project: Path) -> dict[str, object]:
     return lock
 
 
-def lock_settings(lock: dict[str, object]) -> tuple[list[str], dict[str, str], list[str]]:
+def lock_settings(
+    lock: dict[str, object],
+) -> tuple[list[str], dict[str, str], list[str], list[str]]:
     profiles = string_list(lock.get("profiles", []), "lock profiles")
     overrides = string_list(lock.get("overrides", []), "lock overrides")
+    targets = string_list(lock.get("targets", []), "lock targets")
+    managed = string_list(lock.get("managed_roots", []), "lock managed_roots")
     raw_params = lock.get("params", {})
     if not isinstance(raw_params, dict) or not all(
         isinstance(key, str) and isinstance(value, str)
@@ -315,7 +600,7 @@ def lock_settings(lock: dict[str, object]) -> tuple[list[str], dict[str, str], l
     ):
         raise HarnessError("lock params must be a string-to-string object")
     validate_overrides(overrides)
-    return profiles, dict(raw_params), overrides
+    return profiles, dict(raw_params), overrides, targets, managed
 
 
 def drift(project: Path, lock: dict[str, object]) -> list[tuple[str, str, str | None, str | None]]:
@@ -362,8 +647,10 @@ def build_lock(
     params: dict[str, str],
     overrides: list[str],
     receipt: dict[str, dict[str, object]],
+    targets: list[str] | None = None,
+    managed_roots: Iterable[str] | None = None,
 ) -> dict[str, object]:
-    return {
+    lock: dict[str, object] = {
         "schema_version": 1,
         "source": source,
         "version": version,
@@ -374,6 +661,11 @@ def build_lock(
         "overrides": sorted(overrides),
         "files": dict(sorted(receipt.items())),
     }
+    if targets:
+        lock["targets"] = sorted(targets)
+    if managed_roots:
+        lock["managed_roots"] = sorted(managed_roots)
+    return lock
 
 
 def apply_transaction(
@@ -382,6 +674,8 @@ def apply_transaction(
     new_lock: dict[str, object],
     old_lock: dict[str, object] | None,
     adopt_existing: bool,
+    prune: Iterable[str] = (),
+    managed_roots: Iterable[str] = (),
 ) -> None:
     if adopt_existing:
         mismatches = []
@@ -426,7 +720,7 @@ def apply_transaction(
             raw = old_lock.get("files", {})
             if isinstance(raw, dict):
                 old_paths = set(raw)
-        removals = sorted(old_paths - set(payload))
+        removals = sorted((old_paths | set(prune)) - set(payload))
         self_updates = [
             path for path in payload if PurePosixPath(path).name == "harness.py"
         ]
@@ -451,6 +745,7 @@ def apply_transaction(
             staged = stage / destination
             target.parent.mkdir(parents=True, exist_ok=True)
             os.replace(staged, target)
+        prune_empty_directories(project, managed_roots)
     except Exception:
         for destination in reversed(touched):
             target = project / destination
@@ -628,6 +923,9 @@ def from_network(source: str, version: str) -> Release:
             release.files,
             release.archive_sha256,
             cleanup=temporary,
+            targets=release.targets,
+            managed_roots=release.managed_roots,
+            profile_info=release.profile_info,
         )
     except Exception:
         shutil.rmtree(temporary, ignore_errors=True)
@@ -650,13 +948,19 @@ def print_drift(findings: list[tuple[str, str, str | None, str | None]]) -> None
 
 def command_init(args: argparse.Namespace) -> int:
     project = safe_project(args.project)
+    old_lock: dict[str, object] | None = None
     if (project / LOCK_NAME).exists():
-        raise HarnessError(f"{LOCK_NAME} already exists; use sync")
+        if not args.reinstall:
+            raise HarnessError(f"{LOCK_NAME} already exists; use sync or --reinstall")
+        old_lock = load_lock(project)
     params = parse_assignments(args.param, "parameter")
     release: Release | None = None
     try:
         release = acquire_release(args.source, args.to, args.from_dir)
-        payload, receipt = materialize(release, args.profile, params, args.override)
+        targets = args.target or [target.name for target in release.targets]
+        payload, receipt = materialize(
+            release, args.profile, params, args.override, targets
+        )
         lock = build_lock(
             args.source,
             args.to,
@@ -665,10 +969,138 @@ def command_init(args: argparse.Namespace) -> int:
             params,
             args.override,
             receipt,
+            targets,
+            release.managed_roots,
         )
-        apply_transaction(project, payload, lock, None, args.adopt_existing)
-        print(f"installed {args.to}: {len(payload)} governed file(s)")
+        prune = stray_files(project, release.managed_roots, payload, args.override)
+        for path in prune:
+            print(f"pruning unmanaged file in a managed root: {path}")
+        apply_transaction(
+            project,
+            payload,
+            lock,
+            old_lock,
+            args.adopt_existing,
+            prune,
+            release.managed_roots,
+        )
+        verb = "reinstalled" if old_lock else "installed"
+        print(f"{verb} {args.to}: {len(payload)} governed file(s), {len(prune)} pruned")
         return 0
+    finally:
+        cleanup_release(release)
+
+
+def prompt_line(message: str) -> str:
+    try:
+        return input(message)
+    except EOFError as exc:
+        raise HarnessError("selection aborted: end of input") from exc
+
+
+def resolve_choices(
+    choices: list[str],
+    families: dict[str, list[str]],
+    standalone: list[str],
+) -> list[str]:
+    chosen: list[str] = []
+    for raw in choices:
+        if "=" in raw:
+            family, _, variant = raw.partition("=")
+            if family not in families:
+                raise HarnessError(f"unknown profile family: {family}")
+            full = variant if "/" in variant else f"{family}/{variant}"
+            if full not in families[family]:
+                raise HarnessError(
+                    f"unknown variant {variant!r} in family {family} "
+                    f"(have: {', '.join(v.split('/', 1)[1] for v in families[family])})"
+                )
+            chosen.append(full)
+        else:
+            if raw not in standalone:
+                raise HarnessError(f"unknown standalone profile: {raw}")
+            chosen.append(raw)
+    return chosen
+
+
+def menu_choices(
+    families: dict[str, list[str]],
+    standalone: list[str],
+    info: dict[str, str],
+) -> list[str]:
+    chosen: list[str] = []
+    print("Выбор технологического стека (0 или Enter — пропустить семейство):")
+    for family, variants in families.items():
+        print(f"\n[{family}]")
+        for index, name in enumerate(variants, 1):
+            label = name.split("/", 1)[1]
+            description = info.get(name, "")
+            print(f"  {index}. {label}" + (f" — {description}" if description else ""))
+        while True:
+            answer = prompt_line(f"{family} [0-{len(variants)}]: ").strip()
+            if answer in ("", "0"):
+                break
+            if answer.isdigit() and 1 <= int(answer) <= len(variants):
+                chosen.append(variants[int(answer) - 1])
+                break
+            print(f"  введите число от 0 до {len(variants)}")
+    for name in standalone:
+        description = info.get(name, "")
+        suffix = f" — {description}" if description else ""
+        answer = prompt_line(f"\nвключить {name}{suffix}? [y/N]: ").strip().lower()
+        if answer in ("y", "yes", "д", "да"):
+            chosen.append(name)
+    return chosen
+
+
+def command_select(args: argparse.Namespace) -> int:
+    release: Release | None = None
+    try:
+        release = acquire_release(args.source, args.to, args.from_dir)
+        declared = sorted(
+            {
+                entry.profile
+                for entry in release.files
+                if entry.layer == "profile" and entry.profile
+            }
+        )
+        if not declared:
+            raise HarnessError("release declares no profiles; nothing to select")
+        families: dict[str, list[str]] = {}
+        standalone: list[str] = []
+        for name in declared:
+            family = profile_family(name)
+            if family:
+                families.setdefault(family, []).append(name)
+            else:
+                standalone.append(name)
+        info = dict(release.profile_info)
+        if args.choose:
+            chosen = resolve_choices(args.choose, families, standalone)
+        else:
+            chosen = menu_choices(families, standalone, info)
+        print("\nвыбранные профили: " + (", ".join(chosen) if chosen else "(нет)"))
+        command = ["harness.py", "init", "--source", args.source, "--to", args.to]
+        for name in chosen:
+            command += ["--profile", name]
+        if args.reinstall:
+            command.append("--reinstall")
+        print("команда: " + " ".join(command))
+        if args.print_only:
+            return 0
+        init_args = argparse.Namespace(
+            project=args.project,
+            source=args.source,
+            to=args.to,
+            profile=chosen,
+            target=args.target,
+            param=args.param,
+            override=args.override,
+            from_dir=args.from_dir,
+            adopt_existing=False,
+            reinstall=args.reinstall,
+        )
+        return command_init(init_args)
     finally:
         cleanup_release(release)
 
@@ -679,21 +1111,24 @@ def command_sync(args: argparse.Namespace) -> int:
     source = old_lock.get("source")
     if not isinstance(source, str):
         raise HarnessError("lock source is invalid")
-    profiles, params, overrides = lock_settings(old_lock)
+    profiles, params, overrides, targets, _managed = lock_settings(old_lock)
     current_drift = drift(project, old_lock)
     release: Release | None = None
     try:
         release = acquire_release(source, args.to, args.from_dir)
-        payload, receipt = materialize(release, profiles, params, overrides)
+        if not targets:
+            targets = [target.name for target in release.targets]
+        payload, receipt = materialize(release, profiles, params, overrides, targets)
         old_files = old_lock.get("files")
         if not isinstance(old_files, dict):
             raise HarnessError("lock files are invalid")
+        prune = stray_files(project, release.managed_roots, payload, overrides)
         collisions = []
         for path, data in payload.items():
             destination = safe_destination(project, path)
             if path not in old_files and destination.exists():
                 identical = destination.is_file() and destination.read_bytes() == data
-                if not identical:
+                if not identical and path not in prune:
                     collisions.append(path)
         if collisions and not args.force_theirs:
             raise HarnessError(
@@ -725,12 +1160,27 @@ def command_sync(args: argparse.Namespace) -> int:
             params,
             overrides,
             receipt,
+            targets,
+            release.managed_roots,
         )
-        if old_lock == new_lock and not current_drift:
+        for path in prune:
+            print(f"pruning unmanaged file in a managed root: {path}")
+        if old_lock == new_lock and not current_drift and not prune:
             print(f"already at {args.to}; empty diff")
             return 0
-        apply_transaction(project, payload, new_lock, old_lock, False)
-        print(f"synced {old_lock.get('version')} -> {args.to}: {len(payload)} file(s)")
+        apply_transaction(
+            project,
+            payload,
+            new_lock,
+            old_lock,
+            False,
+            prune,
+            release.managed_roots,
+        )
+        print(
+            f"synced {old_lock.get('version')} -> {args.to}: "
+            f"{len(payload)} file(s), {len(prune)} pruned"
+        )
         return 0
     finally:
         cleanup_release(release)
@@ -738,10 +1188,17 @@ def command_sync(args: argparse.Namespace) -> int:
 
 def command_check(args: argparse.Namespace) -> int:
     project = safe_project(args.project)
-    findings = drift(project, load_lock(project))
+    lock = load_lock(project)
+    findings = drift(project, lock)
     print_drift(findings)
-    if findings:
-        print(f"drift: {len(findings)} file(s)")
+    _, _, overrides, _, managed = lock_settings(lock)
+    raw_files = lock.get("files")
+    keep = set(raw_files) if isinstance(raw_files, dict) else set()
+    strays = stray_files(project, managed, keep, overrides)
+    for path in strays:
+        print(f"stray: {path} expected=absent actual=unmanaged")
+    if findings or strays:
+        print(f"drift: {len(findings)} file(s), stray: {len(strays)} file(s)")
         return 2
     print("harness clean")
     return 0
@@ -853,11 +1310,43 @@ def parser() -> argparse.ArgumentParser:
     init.add_argument("--source", required=True)
     init.add_argument("--to", required=True)
     init.add_argument("--profile", action="append", default=[])
+    init.add_argument(
+        "--target",
+        action="append",
+        default=[],
+        help="install only these manifest targets (default: all declared)",
+    )
     init.add_argument("--param", action="append", default=[])
     init.add_argument("--override", action="append", default=[])
     init.add_argument("--from-dir")
     init.add_argument("--adopt-existing", action="store_true")
+    init.add_argument(
+        "--reinstall",
+        action="store_true",
+        help="reconcile an already-installed project instead of refusing",
+    )
     init.set_defaults(handler=command_init)
+
+    select = commands.add_parser(
+        "select",
+        parents=[common],
+        help="interactive stack menu: pick one variant per profile family, then install",
+    )
+    select.add_argument("--source", required=True)
+    select.add_argument("--to", required=True)
+    select.add_argument("--target", action="append", default=[])
+    select.add_argument("--param", action="append", default=[])
+    select.add_argument("--override", action="append", default=[])
+    select.add_argument("--from-dir")
+    select.add_argument("--reinstall", action="store_true")
+    select.add_argument(
+        "--choose",
+        action="append",
+        default=[],
+        help="non-interactive: family=variant (repeatable) or a standalone profile name",
+    )
+    select.add_argument("--print-only", action="store_true")
+    select.set_defaults(handler=command_select)
 
     sync = commands.add_parser("sync", parents=[common])
     sync.add_argument("--to", required=True)

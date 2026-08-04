@@ -108,9 +108,15 @@ applies, and an agent cannot tell whether the absence of `openspec/` means
 
 ## Implementation status
 
-Decided here and not yet built: the `spec/` profile family, the move of layout
-content out of `core/skills/sdd-workflow`, the OpenSpec binding and its
-prerequisite declaration, the `DOC-G2` change for superseded state documents,
-and `DOC-G6`. Until they ship, `sdd-workflow` continues to prescribe the
-`requirements/` and `.kiro/specs/` layouts, and this ADR describes intent
-rather than release behavior.
+Built in `v0.3.0-rc.1`: the `spec/` family with its three bindings, the neutral
+spine in `core/skills/sdd-workflow`, the artifact-role aliasing that keeps the
+existing authoring rules correct under any home, `DOC-G6`, and the `DOC-G2`
+requirement that a superseded or deprecated state document declare
+`superseded_by`.
+
+Deliberately not done: the thirteen authoring rules still say `requirements.md`,
+`design.md`, `tasks.md` and `research.md` in roughly forty places. Rewriting
+that prose was rejected as a large, risky diff over well-tuned text. Instead
+those four names are defined as **roles** that the binding resolves, so the
+rules stay correct under every home without being touched. A reader who takes
+them as file names in an OpenSpec repository is reading against the spine.

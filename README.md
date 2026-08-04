@@ -23,12 +23,40 @@ profiles, parameters, overrides and a sha256 receipt for every managed file.
 There is no `latest`; updates name a tag explicitly and should land through a
 dedicated review.
 
+## Specification home
+
+A consumer selects where present-tense requirement truth lives the same way it
+selects a transport: `spec/openspec`, `spec/kiro` and `spec/plain` are mutually
+exclusive variants of one family and share the canonical rule path
+`docs/governance/rules/spec-home.md`, so switching swaps the binding in place.
+
+`core/` holds the lifecycle and names no layout. `spec/openspec` additionally
+declares a prerequisite the harness cannot install — the global OpenSpec CLI —
+because a binding that silently degrades to another layout when its tool is
+absent is how a repository grows a second home of truth. See ADR-0008.
+
+## Consumer configuration
+
+The shipped gates read project-owned policy files. Copy the examples once and
+edit them; the copies are unmanaged, so your edits are configuration and not
+receipt drift.
+
+```bash
+cd docs/governance
+for name in docs skill stub; do cp "$name-policy.example.json" "$name-policy.json"; done
+```
+
+Each example documents its own schema in an `_about` field the gates ignore.
+`docs-policy.json` is where a repository declares `spec_home`, which `DOC-G6`
+enforces: one populated specification home, and every absorbed document naming
+its new owner in `superseded_by`.
+
 ## Local verification
 
 ```bash
 python3 -m unittest discover -v -t . -s tests -p "test_*.py"
 python3 scripts/verify_source.py
-python3 scripts/build_manifest.py --version v0.2.0-rc.1 --check
+python3 scripts/build_manifest.py --version v0.3.0-rc.1 --check
 ```
 
 ## Release status

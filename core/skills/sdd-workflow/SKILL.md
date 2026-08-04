@@ -6,16 +6,21 @@ description: >
   design discovery/synthesis, bounded review gates, traceable tasks, and
   behavioral evidence. Use for GitHub/GitLab/Gitea/Redmine ticket intake,
   feature or module specification, requirements, research, design, tasks,
-  steering, Kiro artifacts, phase gates, or requests mentioning SDD, EARS, or
-  cc-sdd. Do not use for pure code review of a finished diff; use the relevant
-  domain review skill instead.
+  steering, specification homes, phase gates, or requests mentioning SDD, EARS
+  or spec-driven development. Do not use for pure code review of a finished
+  diff; use the relevant domain review skill instead.
 ---
 
 # SDD Workflow
 
 This is the single public SDD capability. It owns both repository integration
 and artifact-authoring mechanics. Do not load, recreate, or route to a separate
-`cc-sdd` skill.
+SDD skill.
+
+This skill is stack-neutral: it fixes the lifecycle, never the layout. Where
+requirement truth lives, what a requirement heading looks like, and which
+command validates it are supplied by the installed specification-home binding
+(see [Specification home](#specification-home)).
 
 ## Authority and identity
 
@@ -53,38 +58,72 @@ a compaction summary. In repositories that mandate all phases, no code starts
 before requirements and design pass. Any unresolved critical design issue is
 `NO-GO`.
 
-| Phase | Durable artifact | Read these rules in order |
+Each phase produces one durable artifact kind. The binding names the file; this
+table names the obligation.
+
+| Phase | Durable artifact kind | Read these rules in order |
 |---|---|---|
-| Discovery | `*.discovery.md` or the gap section of `research.md` | [gap analysis](../../../docs/governance/rules/gap-analysis.md) → [light](../../../docs/governance/rules/design-discovery-light.md) or [full](../../../docs/governance/rules/design-discovery-full.md) discovery |
-| Requirements | `*.requirements.md` or `requirements.md` | [EARS](../../../docs/governance/rules/ears-format.md) → [requirements gate](../../../docs/governance/rules/requirements-review-gate.md) |
-| Research/design | `*.research.md`, `*.design.md` | [synthesis](../../../docs/governance/rules/design-synthesis.md) → [principles](../../../docs/governance/rules/design-principles.md) → [gate](../../../docs/governance/rules/design-review-gate.md) → [review](../../../docs/governance/rules/design-review.md) |
-| Tasks | `*.tasks.md` or `tasks.md` | [generation](../../../docs/governance/rules/tasks-generation.md) → [parallel analysis](../../../docs/governance/rules/tasks-parallel-analysis.md) |
+| Discovery | discovery record, or the gap section of the research artifact | [gap analysis](../../../docs/governance/rules/gap-analysis.md) → [light](../../../docs/governance/rules/design-discovery-light.md) or [full](../../../docs/governance/rules/design-discovery-full.md) discovery |
+| Requirements | requirements artifact carrying the acceptance criteria | [EARS](../../../docs/governance/rules/ears-format.md) → [requirements gate](../../../docs/governance/rules/requirements-review-gate.md) |
+| Research/design | research and design artifacts | [synthesis](../../../docs/governance/rules/design-synthesis.md) → [principles](../../../docs/governance/rules/design-principles.md) → [gate](../../../docs/governance/rules/design-review-gate.md) → [review](../../../docs/governance/rules/design-review.md) |
+| Tasks | task list traced to requirement IDs | [generation](../../../docs/governance/rules/tasks-generation.md) → [parallel analysis](../../../docs/governance/rules/tasks-parallel-analysis.md) |
 | Implementation/verification | repository run artifacts | repository protocol and phase gate |
-| Steering | `product.md`, `tech.md`, `structure.md` | [steering principles](../../../docs/governance/rules/steering-principles.md) |
+| Steering | project-memory artifacts (product, tech, structure) | [steering principles](../../../docs/governance/rules/steering-principles.md) |
 
 Discovery precedes requirements when the source or implementation is unclear.
 For a bounded, already-specified change, record light discovery rather than
 inventing another requirements source. Escalate light to full when discovery
 finds meaningful architecture, security, external dependencies, or unknowns.
 
-## Artifact locations
+## Specification home
 
-Use the target repository's established layout. For the `requirements/`
-convention:
+A repository has exactly **one** home for present-tense requirement truth. The
+home is not a preference of this skill; it is a property of the target
+repository, supplied by the installed binding at
+`docs/governance/rules/spec-home.md`. Read that file first and obey it: it
+names the paths, the requirement and scenario shape, any prerequisite tool,
+and the command that validates structure.
 
-```text
-requirements/{feature}.discovery.md
-requirements/{feature}.requirements.md
-requirements/{feature}.research.md
-requirements/{feature}.design.md
-requirements/{feature}.tasks.md
-requirements/{feature}.verification.md
-```
+Resolve the home in this order, and stop at the first hit:
 
-Use `.kiro/specs/` only when the target explicitly adopts Kiro. Never create
-parallel truth in both layouts. Store attempt evidence under
-`.super-agent/runs/<RUN_ID>/` when available: feature documents describe the
-capability; run artifacts describe one execution.
+1. an installed `docs/governance/rules/spec-home.md` binding;
+2. a home the repository already populates, if no binding is installed;
+3. nothing — ask which home to adopt before writing. Do not invent one.
+
+Once resolved, the home is exclusive:
+
+- never create a second home beside it, in any layout;
+- if two homes already hold content, stop with `spec_home_conflict` and report
+  both paths. Migrating truth between homes is a reviewed change of its own,
+  never a side effect of authoring a feature;
+- a ticket, planner classification, label or compaction summary never moves the
+  home;
+- when a local governance document has been absorbed into the home, mark it
+  `status: superseded` with `superseded_by:` naming the owning artifact. A
+  sentence claiming the content "now lives" elsewhere is not a record.
+
+Feature documents describe the capability; run artifacts describe one
+execution. Store attempt evidence in the repository's run-evidence location
+when it has one, never inside the specification home.
+
+### Artifact names are roles, not paths
+
+The authoring rules refer to `requirements.md`, `design.md`, `tasks.md` and
+`research.md`. Read these as **role names**. The binding states what each role
+resolves to in this repository, and the rule applies unchanged to whatever it
+names:
+
+| Role | Meaning |
+|---|---|
+| `requirements.md` | the artifact holding acceptance criteria and canonical requirement IDs |
+| `design.md` | the artifact holding architecture, contracts and requirement traceability |
+| `tasks.md` | the artifact holding the implementation task list |
+| `research.md` | the artifact holding investigation notes and rejected alternatives |
+
+Never create a file merely because a rule names a role. If the binding maps two
+roles onto one artifact, satisfy both obligations there; if it maps a role onto
+nothing, say so in the phase gate rather than inventing a file to satisfy the
+wording.
 
 Also read and obey the target repository's declared SDD protocol, phase-gate
 prompt and executable gate when present. Their paths are local environment

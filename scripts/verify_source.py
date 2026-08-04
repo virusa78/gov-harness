@@ -16,16 +16,25 @@ CORE_SKILLS = {
     "shell-testing-gate",
     "truth-pipeline",
 }
-# profile name -> (skill directory names, rule file names)
-PROFILES: dict[str, tuple[set[str], set[str]]] = {
-    "adr": ({"adr"}, set()),
+# profile name -> (skill directory names, rule file names, gate file names)
+PROFILES: dict[str, tuple[set[str], set[str], set[str]]] = {
+    "adr": ({"adr"}, set(), {"verify_adr.py"}),
     "lang/csharp-fintech": (
         {"backend-code-review-csharp", "csharp-backend-build-gate"},
         set(),
+        set(),
     ),
-    "testing/python-tools": ({"python-testing-gate"}, set()),
-    "transport/kafka": (set(), {"io-resilience.md"}),
-    "transport/nats": (set(), {"io-resilience.md"}),
+    "spec/kiro": (set(), {"spec-home.md"}, set()),
+    "spec/openspec": (set(), {"spec-home.md"}, set()),
+    "spec/plain": (set(), {"spec-home.md"}, set()),
+    "testing/python-tools": ({"python-testing-gate"}, set(), set()),
+    "transport/kafka": (set(), {"io-resilience.md"}, set()),
+    "transport/nats": (set(), {"io-resilience.md"}, set()),
+}
+POLICIES = {
+    "docs-policy.example.json",
+    "skill-policy.example.json",
+    "stub-policy.example.json",
 }
 RULES = {
     "bdd-format.md",
@@ -99,7 +108,11 @@ def main() -> int:
         if declared != name:
             fail(f"skill directory/name mismatch: {name} != {declared}")
 
-    for profile, (skills, rule_files) in PROFILES.items():
+    policies = {path.name for path in (ROOT / "core/policies").glob("*.json")}
+    if policies != POLICIES:
+        fail(f"core policy inventory differs: {sorted(policies)}")
+
+    for profile, (skills, rule_files, gate_files) in PROFILES.items():
         base = ROOT / "profiles" / profile
         actual_skills = (
             {path.name for path in (base / "skills").iterdir() if path.is_dir()}
@@ -111,10 +124,17 @@ def main() -> int:
             if (base / "rules").is_dir()
             else set()
         )
+        actual_gates = (
+            {path.name for path in (base / "gates").glob("*.py")}
+            if (base / "gates").is_dir()
+            else set()
+        )
         if actual_skills != skills:
             fail(f"profile {profile} skill boundary differs: {sorted(actual_skills)}")
         if actual_rules != rule_files:
             fail(f"profile {profile} rule boundary differs: {sorted(actual_rules)}")
+        if actual_gates != gate_files:
+            fail(f"profile {profile} gate boundary differs: {sorted(actual_gates)}")
         for name in skills:
             declared = skill_name(base / "skills" / name / "SKILL.md")
             if declared != name:
@@ -174,12 +194,14 @@ def main() -> int:
         fail("release manifest crosses into project truth")
     if any("latest" in str(value).lower() for value in manifest.values()):
         fail("release manifest may not use latest")
-    profile_count = sum(len(skills) for skills, _ in PROFILES.values())
-    rule_variants = sum(len(rule_files) for _, rule_files in PROFILES.values())
+    profile_count = sum(len(item[0]) for item in PROFILES.values())
+    rule_variants = sum(len(item[1]) for item in PROFILES.values())
+    gate_variants = sum(len(item[2]) for item in PROFILES.values())
     print(
         f"source boundary clean: {len(rules)} core rules, "
-        f"{len(core)} core skills, {profile_count} profile skills, "
-        f"{rule_variants} profile rule variants"
+        f"{len(core)} core skills, {len(policies)} core policy examples, "
+        f"{profile_count} profile skills, {rule_variants} profile rule variants, "
+        f"{gate_variants} profile gates"
     )
     return 0
 

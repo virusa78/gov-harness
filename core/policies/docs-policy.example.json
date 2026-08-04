@@ -1,0 +1,46 @@
+{
+  "_about": [
+    "Configuration for scripts/governance_docs.py (DOC-G1, DOC-G2, DOC-G4, DOC-G5, DOC-G6).",
+    "Copy this file to docs/governance/docs-policy.json and edit it. The copy is",
+    "project-owned: the harness never manages it, so your edits are not drift.",
+    "Keys starting with _ are ignored by the gate.",
+    "",
+    "link_roots        DOC-G1: files or directories whose relative Markdown links must resolve.",
+    "metadata_roots    DOC-G2: directories whose Markdown must carry lifecycle frontmatter.",
+    "legacy_missing_frontmatter_max  DOC-G2 ratchet: how many files may still lack frontmatter.",
+    "                  Lower it as you migrate; never raise it.",
+    "seal_roots        DOC-G4: git pathspec limiting the sealed-event immutability check.",
+    "portability_roots DOC-G5: directories that must not contain machine-bound home paths.",
+    "environment_owner DOC-G5: the one file allowed to name absolute home paths.",
+    "spec_homes        DOC-G6: every candidate specification home in this repository.",
+    "                  An empty list skips the gate.",
+    "spec_home         DOC-G6: the one home that owns present-tense requirement truth.",
+    "                  null means undeclared: the gate then only refuses two populated homes."
+  ],
+  "schema_version": 1,
+  "link_roots": [
+    "docs/governance/rules",
+    ".agents/skills"
+  ],
+  "link_excludes": [],
+  "metadata_roots": [
+    "docs/governance/rules"
+  ],
+  "metadata_excludes": [],
+  "legacy_missing_frontmatter_max": 0,
+  "seal_roots": [
+    "docs"
+  ],
+  "portability_roots": [
+    "docs/governance/rules"
+  ],
+  "portability_excludes": [],
+  "environment_owner": "AGENTS.md",
+  "spec_homes": [
+    "openspec/specs",
+    ".kiro/specs",
+    "requirements",
+    "spec"
+  ],
+  "spec_home": null
+}

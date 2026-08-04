@@ -90,7 +90,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         findings = run(root, load_policy(root, args.policy), args.write)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
-        print(f"DOC-G3 CONFIG: {exc}", file=sys.stderr)
+        print(
+            f"DOC-G3 CONFIG: {exc}; copy "
+            "docs/governance/stub-policy.example.json and edit it",
+            file=sys.stderr,
+        )
         return 2
     for finding in findings:
         print(f"DOC-G3 {finding}")

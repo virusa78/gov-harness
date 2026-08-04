@@ -29,8 +29,10 @@ runnable and gives the deploy gate its checklist.
 
 ## File placement
 
-- One feature file per SDD feature: `requirements/{feature}.feature`.
-- Slug matches the SDD document set (`{feature}.requirements.md` ↔ `{feature}.feature`).
+- One feature file per SDD feature, in the location the specification-home
+  binding gives for behavioral artifacts.
+- Slug matches the SDD document set: the feature file and the requirements
+  artifact carry the same feature slug.
 - Plain Gherkin. No framework-specific glue in the `.feature` file itself.
 
 ## Gherkin structure
@@ -50,7 +52,7 @@ Feature: <short capability name>
     And   <further checkable outcomes>
 ```
 
-- **Feature** — the capability. Mirrors the `.requirements.md` scope line.
+- **Feature** — the capability. Mirrors the scope line of the requirements artifact.
 - **Background** — preconditions true for all scenarios (stack up, seed applied,
   clean outbox/inbox). Never put an assertion or an irreversible mutation in
   Background; scenario order must not affect the result. Any setup performed
@@ -110,8 +112,8 @@ becomes **two** scenarios (one per branch), each tagged with the same EARS ID.
 - [ ] Data is deterministic (fixed tenant/keys/seed) — repeatable.
 - [ ] Anchors (endpoints, topics, SLAs) match the design doc, not paraphrase.
 
-Record pass/fail in the feature's `.requirements.md` Verification Log
-(`BDD Review | PASS/FAIL`).
+Record pass/fail in the Verification Log of the feature's requirements
+artifact (`BDD Review | PASS/FAIL`).
 
 ## Relationship to the gate script
 

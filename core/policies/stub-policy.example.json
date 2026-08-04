@@ -1,0 +1,26 @@
+{
+  "_about": [
+    "Configuration for scripts/sync-agent-stubs.py (DOC-G3).",
+    "Copy this file to docs/governance/stub-policy.json and edit it. The copy is",
+    "project-owned: the harness never manages it, so your edits are not drift.",
+    "Keys starting with _ are ignored by the gate.",
+    "",
+    "canonical_root          where the real rule text lives. Exactly one home.",
+    "rules                   Markdown basenames that need an ecosystem pointer.",
+    "stub_roots              tool-specific directories that receive generated",
+    "                        pointer files. Run with --write to regenerate them;",
+    "                        without --write the gate reports staleness.",
+    "forbidden_content_roots directories that must never hold rule content of",
+    "                        their own. A second content-bearing rule home is a",
+    "                        fork of truth, which is what this gate exists to",
+    "                        prevent.",
+    "",
+    "Leave stub_roots empty until a second agent tool actually reads rules from",
+    "its own directory; an empty list keeps the gate green and generates nothing."
+  ],
+  "schema_version": 1,
+  "canonical_root": "docs/governance/rules",
+  "rules": [],
+  "stub_roots": [],
+  "forbidden_content_roots": []
+}

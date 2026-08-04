@@ -109,7 +109,11 @@ def main(argv: list[str] | None = None) -> int:
         lock = load_object(root / safe_relative(args.lock, "--lock"), "lock")
         findings = run(root, policy, lock)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
-        print(f"SKILL-G CONFIG: {exc}", file=sys.stderr)
+        print(
+            f"SKILL-G CONFIG: {exc}; copy "
+            "docs/governance/skill-policy.example.json and edit it",
+            file=sys.stderr,
+        )
         return 2
     for finding in findings:
         print(f"SKILL-G {finding}")

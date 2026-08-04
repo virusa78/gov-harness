@@ -19,7 +19,7 @@ from typing import Iterable
 from urllib.parse import unquote
 
 
-GATES = ("DOC-G1", "DOC-G2", "DOC-G4", "DOC-G5")
+GATES = ("DOC-G1", "DOC-G2", "DOC-G4", "DOC-G5", "DOC-G6")
 REQUIRED_METADATA = ("id", "class", "status", "owner", "updated", "sources")
 ALLOWED_STATUS = {
     "state": {"active", "deprecated", "superseded"},
@@ -55,7 +55,10 @@ def load_config(root: Path, config_arg: str) -> dict[str, object]:
     try:
         value = json.loads(config_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise ConfigurationError(f"cannot load config {config_path}: {exc}") from exc
+        raise ConfigurationError(
+            f"cannot load config {config_path}: {exc}; "
+            "copy docs/governance/docs-policy.example.json and edit it"
+        ) from exc
     if not isinstance(value, dict) or value.get("schema_version") != 1:
         raise ConfigurationError("config must be an object with schema_version=1")
     return value
@@ -253,6 +256,20 @@ def check_metadata(root: Path, config: dict[str, object]) -> list[Finding]:
                             f"sealed event is missing {key}",
                         )
                     )
+        # A retired state document must name what replaced it. The field is
+        # required, its answer is not: an explicit empty list records "retired,
+        # nothing supersedes it", while a missing field records nothing at all.
+        if doc_class == "state" and status in {"superseded", "deprecated"}:
+            if not metadata.get("superseded_by"):
+                findings.append(
+                    Finding(
+                        "DOC-G2",
+                        relative(path, root),
+                        1,
+                        f"{status} state document must declare a non-empty "
+                        "superseded_by (use [] to record that nothing replaces it)",
+                    )
+                )
     if len(missing) > baseline:
         sample = ", ".join(relative(path, root) for path in missing[:5])
         findings.append(
@@ -366,6 +383,59 @@ def check_portability(root: Path, config: dict[str, object]) -> list[Finding]:
     return findings
 
 
+def holds_content(path: Path) -> bool:
+    """True when a candidate home actually carries specification documents."""
+    return path.is_dir() and any(path.rglob("*.md"))
+
+
+def check_spec_home(root: Path, config: dict[str, object]) -> tuple[list[Finding], str | None]:
+    """DOC-G6 — a repository has exactly one populated specification home."""
+    homes = string_list(config, "spec_homes")
+    if not homes:
+        return [], "DOC-G6: spec_homes is not configured"
+    if len(set(homes)) != len(homes):
+        raise ConfigurationError("spec_homes contains duplicates")
+    declared = config.get("spec_home")
+    if declared is not None and not isinstance(declared, str):
+        raise ConfigurationError("spec_home must be a string when present")
+    if declared is not None and declared not in homes:
+        raise ConfigurationError(f"spec_home {declared!r} is not listed in spec_homes")
+
+    populated: list[str] = []
+    for home in homes:
+        candidate = root / PurePosixPath(home)
+        if not candidate.resolve().is_relative_to(root):
+            raise ConfigurationError(f"spec_homes entry escapes the repository: {home}")
+        if holds_content(candidate):
+            populated.append(home)
+
+    findings: list[Finding] = []
+    if declared is None:
+        if len(populated) > 1:
+            findings.append(
+                Finding(
+                    "DOC-G6",
+                    ".",
+                    0,
+                    "several specification homes hold content and none is "
+                    f"declared: {', '.join(populated)}; set spec_home",
+                )
+            )
+        return findings, None
+    for home in populated:
+        if home != declared:
+            findings.append(
+                Finding(
+                    "DOC-G6",
+                    home,
+                    0,
+                    "second specification home holds content; the declared "
+                    f"home is {declared}",
+                )
+            )
+    return findings, None
+
+
 def write_report(
     output: Path,
     root: Path,
@@ -417,6 +487,11 @@ def main(argv: list[str] | None = None) -> int:
                 findings.extend(check_seals(root, config, args.base))
         if "DOC-G5" in selected:
             findings.extend(check_portability(root, config))
+        if "DOC-G6" in selected:
+            spec_findings, spec_skipped = check_spec_home(root, config)
+            findings.extend(spec_findings)
+            if spec_skipped is not None:
+                skipped.append(spec_skipped)
         findings.sort(key=lambda item: (item.gate, item.path, item.line, item.message))
         output = Path(args.output)
         if not output.is_absolute():

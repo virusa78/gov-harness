@@ -12,3 +12,4 @@
 | [ADR-0006](0006-generated-documents-have-distinct-lifecycle.md) | Generated documents have a distinct lifecycle | Accepted |
 | [ADR-0007](0007-stack-content-lives-in-exclusive-profile-families.md) | Stack content lives in mutually exclusive profile families; the menu is manifest data | Accepted |
 | [ADR-0008](0008-specification-home-is-an-exclusive-profile-axis.md) | One specification home per repository, selected as an exclusive profile axis; OpenSpec wins when present | Accepted |
+| [ADR-0009](0009-a-profile-ships-the-gate-its-skill-names.md) | A profile ships the gate its skill names; consumer config ships as an example | Accepted |

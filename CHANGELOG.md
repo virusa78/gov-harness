@@ -1,11 +1,36 @@
 # Changelog
 
-## Unreleased
+## v0.3.0-rc.1 — 2026-08-04
 
-- Decide that the specification home is an exclusive profile axis, that
-  OpenSpec takes precedence where it exists, and that absorption into it is a
-  frontmatter field rather than prose (ADR-0008). No release behavior changes
-  yet; the ADR records its own implementation gap.
+- New `spec/` profile family: `spec/openspec`, `spec/kiro` and `spec/plain` are
+  mutually exclusive bindings sharing the canonical rule path
+  `docs/governance/rules/spec-home.md`, so a consumer switches its
+  specification home with `select --reinstall` (ADR-0008).
+- `core/skills/sdd-workflow` becomes the neutral spine: it names no
+  specification tool and no path layout, resolves the home through the
+  installed binding, and refuses a second home with `spec_home_conflict`.
+  `requirements.md`, `design.md`, `tasks.md` and `research.md` are now defined
+  as artifact **roles** the binding resolves, so the thirteen authoring rules
+  stay correct under every home without being rewritten.
+- `spec/openspec` declares the prerequisite the harness cannot install — the
+  global OpenSpec CLI, its Node.js floor, `openspec init` and the six generated
+  capabilities — and maps EARS logic onto `### Requirement:` / `#### Scenario:`
+  with `openspec validate --strict` as the structural gate.
+- Remove the remaining tool-named paths from `core/`: `.kiro/` in
+  `steering-principles`, and the `.requirements.md` suffix in `bdd-format`.
+- New `DOC-G6`: a repository has one populated specification home. `DOC-G2` now
+  requires a superseded or deprecated `class: state` document to declare a
+  non-empty `superseded_by`; an explicit `[]` records a retirement, a missing
+  field records nothing.
+- Ship `docs/governance/{docs,skill,stub}-policy.example.json`. The three gates
+  previously defaulted to project-owned config the release never provided, so a
+  fresh consumer got three executables that failed with a configuration error
+  and no documented schema. The copies stay unmanaged (ADR-0009).
+- A profile may now carry a `gates/` subtree. The `adr` profile ships
+  `scripts/verify-adr.py`, the `ADR-G` gate its skill has been naming as
+  `scripts/verify-requirements.sh` — a file that existed in neither the source
+  nor any manifest. Section headings and the lesson field are arguments, so the
+  gate imposes no natural language (ADR-0009).
 - Repair the source workflow: it pinned `v0.1.0-rc.5` against a `v0.2.0-rc.1`
   manifest, so the reproducibility check failed, and it ran only
   `tests/test_harness.py`. CI and the README now discover every test module,
@@ -13,6 +38,11 @@
   from the manifest version.
 - Correct README drift from `v0.2.0-rc.1`: the `select` command and the
   profile families were missing.
+
+Consumers of `v0.2.x` receive the specification-home binding only after
+reinstalling with a `spec/*` profile; a plain sync with an empty profile list
+installs no binding, and `sdd-workflow` then falls back to the home the
+repository already populates.
 
 ## v0.2.0-rc.1 — 2026-08-03
 

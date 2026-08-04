@@ -38,6 +38,9 @@
   from the manifest version.
 - Correct README drift from `v0.2.0-rc.1`: the `select` command and the
   profile families were missing.
+- Record that the hosted runner is allocated and the source workflow is green.
+  Certification stays `NO-GO`: runner allocation is one of five prerequisites,
+  and required-CI branch protection is not among the ones now met.
 
 Consumers of `v0.2.x` receive the specification-home binding only after
 reinstalling with a `spec/*` profile; a plain sync with an empty profile list

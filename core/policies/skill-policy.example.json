@@ -1,0 +1,27 @@
+{
+  "_about": [
+    "Configuration for scripts/verify-skills.py (SKILL-G).",
+    "Copy this file to docs/governance/skill-policy.json and edit it. The copy is",
+    "project-owned: the harness never manages it, so your edits are not drift.",
+    "Keys starting with _ are ignored by the gate.",
+    "",
+    "skills_root  the installed skill tree, matching the release managed root.",
+    "skills       every skill that may exist there, mapped to its owning layer.",
+    "             core    shipped by the release, receipt-owned;",
+    "             profile shipped by a selected profile, receipt-owned;",
+    "             local   authored by this project; must be covered by a lock",
+    "                     override and must not be receipt-owned.",
+    "",
+    "The gate fails on any skill present on disk but absent here, and on any",
+    "skill listed here but missing on disk, so a hand-copied skill tree cannot",
+    "drift in silently. List the profile skills you actually selected."
+  ],
+  "schema_version": 1,
+  "skills_root": ".agents/skills",
+  "skills": {
+    "karpathy": "core",
+    "sdd-workflow": "core",
+    "shell-testing-gate": "core",
+    "truth-pipeline": "core"
+  }
+}

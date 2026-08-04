@@ -17,8 +17,11 @@ MANIFEST = ROOT / "release/manifest.json"
 # renders exactly these lines. A discovered profile without a description or a
 # description without a profile directory fails the build.
 PROFILE_INFO = {
-    "adr": "ADR workflow — requires docs/architecture/decisions/ in the consumer",
+    "adr": "ADR workflow and the ADR-G gate — requires docs/architecture/decisions/",
     "lang/csharp-fintech": "C# financial-backend skills",
+    "spec/kiro": "Specification home — .kiro/specs/, reviewer-verified only",
+    "spec/openspec": "Specification home — OpenSpec (needs the global CLI)",
+    "spec/plain": "Specification home — plain requirements/, no tool behind it",
     "testing/python-tools": "Python verification-script discipline (dev tooling)",
     "transport/kafka": "Kafka/Redpanda messaging — offset, outbox and DLQ discipline",
     "transport/nats": "NATS/JetStream messaging — ack, redelivery and DLQ discipline",
@@ -27,6 +30,10 @@ PROFILE_INFO = {
 # Subtrees the harness owns outright in a consumer project: anything inside
 # them that the current receipt does not own is pruned on init --reinstall/sync.
 MANAGED_ROOTS = [".agents/skills"]
+
+# Content kinds a profile directory may carry. A directory holding none of
+# them is a family, and its children are its variants.
+SUBTREES = ("skills", "rules", "gates")
 
 
 def digest(path: Path) -> str:
@@ -44,16 +51,16 @@ def discover_profiles() -> dict[str, Path]:
     for first in sorted((ROOT / "profiles").iterdir()):
         if not first.is_dir():
             raise RuntimeError(f"unexpected file under profiles/: {first.name}")
-        if (first / "skills").is_dir() or (first / "rules").is_dir():
+        if any((first / kind).is_dir() for kind in SUBTREES):
             profiles[first.name] = first
             continue
         variants = sorted(path for path in first.iterdir() if path.is_dir())
         if not variants:
             raise RuntimeError(f"empty profile family: profiles/{first.name}")
         for variant in variants:
-            if not ((variant / "skills").is_dir() or (variant / "rules").is_dir()):
+            if not any((variant / kind).is_dir() for kind in SUBTREES):
                 raise RuntimeError(
-                    f"profile variant lacks skills/ or rules/: "
+                    f"profile variant lacks {'/, '.join(SUBTREES)}/: "
                     f"profiles/{first.name}/{variant.name}"
                 )
             profiles[f"{first.name}/{variant.name}"] = variant
@@ -92,6 +99,10 @@ def entries() -> list[dict[str, object]]:
             False,
         ),
     ]
+    for path in sorted((ROOT / "core/policies").glob("*.example.json")):
+        mappings.append(
+            (path, f"docs/governance/{path.name}", "core", None, False)
+        )
     for path in sorted((ROOT / "core/rules").glob("*.md")):
         mappings.append(
             (
@@ -135,6 +146,13 @@ def entries() -> list[dict[str, object]]:
                         name,
                         False,
                     )
+                )
+        gates_root = base / "gates"
+        if gates_root.is_dir():
+            for path in sorted(gates_root.glob("*.py")):
+                script = path.stem.replace("_", "-") + path.suffix
+                mappings.append(
+                    (path, f"scripts/{script}", "profile", name, False)
                 )
     result = []
     for source, destination, layer, profile, templated in mappings:

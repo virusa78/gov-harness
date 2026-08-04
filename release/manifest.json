@@ -5,7 +5,7 @@
       "executable": false,
       "layer": "profile",
       "profile": "adr",
-      "sha256": "sha256:71eae508c60a83f50aeefc0d2d7eebdc8da55bb42e9719a40846abae16390206",
+      "sha256": "sha256:e05aa686bf48200906f07c3955e246f1855e2b7ee900b6ec9de3f04128ecfe2d",
       "source": "profiles/adr/skills/adr/SKILL.md",
       "templated": false
     },
@@ -50,7 +50,7 @@
       "executable": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:e1649255aa18d39cc5503390f61c87e3b6c56251b35ad94857a971881b4137dc",
+      "sha256": "sha256:d7306d106799ae4b106be32a215303be059163913936007d7a94ee268fac2271",
       "source": "core/skills/sdd-workflow/SKILL.md",
       "templated": false
     },
@@ -82,11 +82,20 @@
       "templated": false
     },
     {
+      "destination": "docs/governance/docs-policy.example.json",
+      "executable": false,
+      "layer": "core",
+      "profile": null,
+      "sha256": "sha256:e60076727e49c2eb493356451ff4cc2f9c7671523535222a639e04b14b15e954",
+      "source": "core/policies/docs-policy.example.json",
+      "templated": false
+    },
+    {
       "destination": "docs/governance/rules/bdd-format.md",
       "executable": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:77bb7543db5a57024031c666fd92eb9dca0f7e371633459b5b0409abf40d180f",
+      "sha256": "sha256:51d0bd26a84622e598cd8b4e77362fb930febb4b32d76e3e9ded6e8568ad0691",
       "source": "core/rules/bdd-format.md",
       "templated": false
     },
@@ -190,11 +199,38 @@
       "templated": false
     },
     {
+      "destination": "docs/governance/rules/spec-home.md",
+      "executable": false,
+      "layer": "profile",
+      "profile": "spec/kiro",
+      "sha256": "sha256:45b1a0c02f72f97e5011c89e59889f50bb0ea867743d1dde17ce423a31d730f3",
+      "source": "profiles/spec/kiro/rules/spec-home.md",
+      "templated": false
+    },
+    {
+      "destination": "docs/governance/rules/spec-home.md",
+      "executable": false,
+      "layer": "profile",
+      "profile": "spec/openspec",
+      "sha256": "sha256:8bb11967dab6f4125a04a28bacd4a961a88f8e8e59067aaa0c9760d68774d66e",
+      "source": "profiles/spec/openspec/rules/spec-home.md",
+      "templated": false
+    },
+    {
+      "destination": "docs/governance/rules/spec-home.md",
+      "executable": false,
+      "layer": "profile",
+      "profile": "spec/plain",
+      "sha256": "sha256:c8244391b4f3fa61a60ab32d4c8203e8ac5112020a8c7dea776172d1af1e5a84",
+      "source": "profiles/spec/plain/rules/spec-home.md",
+      "templated": false
+    },
+    {
       "destination": "docs/governance/rules/steering-principles.md",
       "executable": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:742d6ba60bf1cdc7a58709f7b20890284a0d70926ed7382d6fbe91b674412f3e",
+      "sha256": "sha256:a223bc7c453259268e090c63167f75f5a444051ce361163f2388af85662dfc0f",
       "source": "core/rules/steering-principles.md",
       "templated": false
     },
@@ -217,11 +253,29 @@
       "templated": false
     },
     {
+      "destination": "docs/governance/skill-policy.example.json",
+      "executable": false,
+      "layer": "core",
+      "profile": null,
+      "sha256": "sha256:1832b303b815ee1abb49a71791c17357861d3b8e17430c61d36c538835b28bb6",
+      "source": "core/policies/skill-policy.example.json",
+      "templated": false
+    },
+    {
+      "destination": "docs/governance/stub-policy.example.json",
+      "executable": false,
+      "layer": "core",
+      "profile": null,
+      "sha256": "sha256:bf755474f82cf193f7fa50d8d80d760235d7862daeecdb0b226f53b2643b4e4c",
+      "source": "core/policies/stub-policy.example.json",
+      "templated": false
+    },
+    {
       "destination": "scripts/governance_docs.py",
       "executable": true,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:a4a3284726f89433c2a2c1c1ef376c1a522b07e74bcc080dc3ebc79afd192d36",
+      "sha256": "sha256:074298179dd10d0d01b6d71cdf2ede93a59ec780d5f17c9f9405c463e343f94b",
       "source": "core/gates/governance_docs.py",
       "templated": false
     },
@@ -239,8 +293,17 @@
       "executable": true,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:0a64defc147fb9c22973f7e3d9e47a2f98eb17b243a9b6e6b509517b573d9455",
+      "sha256": "sha256:4af6d63e3759423b8977085f2bfb7c1f5b6175968b1dd2258500a909850c3ab1",
       "source": "core/gates/sync_agent_stubs.py",
+      "templated": false
+    },
+    {
+      "destination": "scripts/verify-adr.py",
+      "executable": true,
+      "layer": "profile",
+      "profile": "adr",
+      "sha256": "sha256:9bfc8ce37c9ea9c93d8fa9d9765dd5aeb3127490fddbfcd0ed5b39c8441b7203",
+      "source": "profiles/adr/gates/verify_adr.py",
       "templated": false
     },
     {
@@ -257,7 +320,7 @@
       "executable": true,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:564b340f66c177bc93e5d628aa875bec8890887a6c73c93316d386b9154e09d9",
+      "sha256": "sha256:bd087e12eed7eb12822189fd5f24c6c141fa497c774817bba29d1fb08269bdd7",
       "source": "core/gates/verify_skills.py",
       "templated": false
     }
@@ -267,12 +330,24 @@
   ],
   "profile_info": [
     {
-      "description": "ADR workflow \u2014 requires docs/architecture/decisions/ in the consumer",
+      "description": "ADR workflow and the ADR-G gate \u2014 requires docs/architecture/decisions/",
       "name": "adr"
     },
     {
       "description": "C# financial-backend skills",
       "name": "lang/csharp-fintech"
+    },
+    {
+      "description": "Specification home \u2014 .kiro/specs/, reviewer-verified only",
+      "name": "spec/kiro"
+    },
+    {
+      "description": "Specification home \u2014 OpenSpec (needs the global CLI)",
+      "name": "spec/openspec"
+    },
+    {
+      "description": "Specification home \u2014 plain requirements/, no tool behind it",
+      "name": "spec/plain"
     },
     {
       "description": "Python verification-script discipline (dev tooling)",
@@ -291,5 +366,5 @@
     "golden_sample"
   ],
   "schema_version": 2,
-  "version": "v0.2.0-rc.1"
+  "version": "v0.3.0-rc.1"
 }

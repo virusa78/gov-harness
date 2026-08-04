@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- Decide that the specification home is an exclusive profile axis, that
+  OpenSpec takes precedence where it exists, and that absorption into it is a
+  frontmatter field rather than prose (ADR-0008). No release behavior changes
+  yet; the ADR records its own implementation gap.
+- Repair the source workflow: it pinned `v0.1.0-rc.5` against a `v0.2.0-rc.1`
+  manifest, so the reproducibility check failed, and it ran only
+  `tests/test_harness.py`. CI and the README now discover every test module,
+  and `tests/test_release_pins.py` fails offline when a documented pin drifts
+  from the manifest version.
+- Correct README drift from `v0.2.0-rc.1`: the `select` command and the
+  profile families were missing.
+
 ## v0.2.0-rc.1 — 2026-08-03
 
 - Manifest schema 2: profile families (`family/variant`), mutually exclusive

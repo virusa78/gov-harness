@@ -46,50 +46,81 @@ def frontmatter_keys(path: Path) -> dict[str, str]:
     return result
 
 
+def skill_roots(policy: dict[str, object]) -> list[Path]:
+    """Accept one root or many: a release may fan out into several tool roots."""
+    raw = policy.get("skills_root")
+    values = raw if isinstance(raw, list) else [raw]
+    if not values:
+        raise ValueError("skills_root must name at least one directory")
+    roots = [safe_relative(item, "skills_root") for item in values]
+    if len({item.as_posix() for item in roots}) != len(roots):
+        raise ValueError("skills_root contains duplicates")
+    return roots
+
+
 def run(root: Path, policy: dict[str, object], lock: dict[str, object]) -> list[str]:
-    skills_root = safe_relative(policy.get("skills_root"), "skills_root")
+    roots = skill_roots(policy)
     configured = policy.get("skills")
     if not isinstance(configured, dict) or not all(
         isinstance(name, str) and layer in {"core", "profile", "local"}
         for name, layer in configured.items()
     ):
         raise ValueError("skills must map names to core, profile or local")
-    actual_root = root / skills_root
-    actual = {path.name for path in actual_root.iterdir() if path.is_dir()}
-    expected = set(configured)
-    findings = [
-        f"unexpected installed skill: {name}" for name in sorted(actual - expected)
-    ]
-    findings.extend(
-        f"missing installed skill: {name}" for name in sorted(expected - actual)
-    )
-
     files = lock.get("files")
     overrides = lock.get("overrides")
     if not isinstance(files, dict) or not isinstance(overrides, list):
         raise ValueError("lock must contain files and overrides")
-    for name, layer in sorted(configured.items()):
-        skill_rel = (skills_root / name / "SKILL.md").as_posix()
-        skill_path = root / skill_rel
-        if not skill_path.is_file():
+
+    findings: list[str] = []
+    expected = set(configured)
+    present = 0
+    for skills_root in roots:
+        actual_root = root / skills_root
+        # A configured root that was never installed is not a finding: a
+        # consumer may select a subset of targets. The receipt, not this gate,
+        # proves an install is complete.
+        if not actual_root.is_dir():
             continue
-        metadata = frontmatter_keys(skill_path)
-        if metadata.get("name") != name:
-            findings.append(f"{skill_rel}: frontmatter name must be {name!r}")
-        if "description" not in metadata:
-            findings.append(f"{skill_rel}: frontmatter description is required")
-        if layer == "local":
-            if not any(
-                isinstance(pattern, str) and fnmatch.fnmatchcase(skill_rel, pattern)
-                for pattern in overrides
-            ):
-                findings.append(f"{skill_rel}: local skill is not covered by a lock override")
-            if skill_rel in files:
-                findings.append(f"{skill_rel}: local skill must not be receipt-owned")
-        else:
-            receipt = files.get(skill_rel)
-            if not isinstance(receipt, dict) or receipt.get("layer") != layer:
-                findings.append(f"{skill_rel}: missing {layer} receipt ownership")
+        present += 1
+        label = skills_root.as_posix()
+        actual = {path.name for path in actual_root.iterdir() if path.is_dir()}
+        findings.extend(
+            f"{label}: unexpected installed skill: {name}"
+            for name in sorted(actual - expected)
+        )
+        findings.extend(
+            f"{label}: missing installed skill: {name}"
+            for name in sorted(expected - actual)
+        )
+        for name, layer in sorted(configured.items()):
+            skill_rel = (skills_root / name / "SKILL.md").as_posix()
+            skill_path = root / skill_rel
+            if not skill_path.is_file():
+                continue
+            metadata = frontmatter_keys(skill_path)
+            if metadata.get("name") != name:
+                findings.append(f"{skill_rel}: frontmatter name must be {name!r}")
+            if "description" not in metadata:
+                findings.append(f"{skill_rel}: frontmatter description is required")
+            if layer == "local":
+                if not any(
+                    isinstance(pattern, str) and fnmatch.fnmatchcase(skill_rel, pattern)
+                    for pattern in overrides
+                ):
+                    findings.append(
+                        f"{skill_rel}: local skill is not covered by a lock override"
+                    )
+                if skill_rel in files:
+                    findings.append(f"{skill_rel}: local skill must not be receipt-owned")
+            else:
+                receipt = files.get(skill_rel)
+                if not isinstance(receipt, dict) or receipt.get("layer") != layer:
+                    findings.append(f"{skill_rel}: missing {layer} receipt ownership")
+    if not present:
+        findings.append(
+            "no configured skills_root exists: "
+            + ", ".join(item.as_posix() for item in roots)
+        )
     return findings
 
 

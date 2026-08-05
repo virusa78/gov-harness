@@ -95,6 +95,72 @@ class GateTests(unittest.TestCase):
             )
             self.assertEqual(2, subprocess.run(command).returncode)
 
+    def test_skill_boundary_across_fanned_out_roots(self) -> None:
+        """A release fans one skill into several tool roots; all are checked."""
+        roots = [".agents/skills", ".claude/skills", ".codex/skills"]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            receipts = {}
+            # Only two of the three roots are installed: selecting a subset of
+            # targets must stay quiet, not report the absent root.
+            for skills_root in roots[:2]:
+                path = root / skills_root / "core-skill/SKILL.md"
+                path.parent.mkdir(parents=True)
+                path.write_text(
+                    "---\nname: core-skill\ndescription: Trigger it.\n---\n",
+                    encoding="utf-8",
+                )
+                receipts[f"{skills_root}/core-skill/SKILL.md"] = {"layer": "core"}
+            write_json(
+                root / "policy.json",
+                {
+                    "schema_version": 1,
+                    "skills_root": roots,
+                    "skills": {"core-skill": "core"},
+                },
+            )
+            write_json(
+                root / ".harness.lock",
+                {"schema_version": 1, "files": receipts, "overrides": []},
+            )
+            command = [
+                sys.executable, str(SKILLS), "--root", str(root),
+                "--policy", "policy.json",
+            ]
+            self.assertEqual(0, subprocess.run(command).returncode)
+
+            # A hand-copied skill in a non-primary root is the failure this
+            # gate exists for.
+            stray = root / ".claude/skills/handmade/SKILL.md"
+            stray.parent.mkdir(parents=True)
+            stray.write_text("---\nname: handmade\ndescription: x\n---\n", encoding="utf-8")
+            done = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(2, done.returncode)
+            self.assertIn(".claude/skills: unexpected installed skill: handmade", done.stdout)
+
+    def test_no_installed_skill_root_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_json(
+                root / "policy.json",
+                {
+                    "schema_version": 1,
+                    "skills_root": [".agents/skills"],
+                    "skills": {},
+                },
+            )
+            write_json(
+                root / ".harness.lock",
+                {"schema_version": 1, "files": {}, "overrides": []},
+            )
+            done = subprocess.run(
+                [sys.executable, str(SKILLS), "--root", str(root),
+                 "--policy", "policy.json"],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(2, done.returncode)
+            self.assertIn("no configured skills_root exists", done.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

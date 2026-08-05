@@ -13,3 +13,4 @@
 | [ADR-0007](0007-stack-content-lives-in-exclusive-profile-families.md) | Stack content lives in mutually exclusive profile families; the menu is manifest data | Accepted |
 | [ADR-0008](0008-specification-home-is-an-exclusive-profile-axis.md) | One specification home per repository, selected as an exclusive profile axis; OpenSpec wins when present | Accepted |
 | [ADR-0009](0009-a-profile-ships-the-gate-its-skill-names.md) | A profile ships the gate its skill names; consumer config ships as an example | Accepted |
+| [ADR-0010](0010-skills-fan-out-into-declared-tool-roots.md) | Skills fan out into declared agent tool roots; every root is managed and two segments deep | Accepted |

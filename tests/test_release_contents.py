@@ -60,12 +60,15 @@ class PolicyExampleTests(unittest.TestCase):
 
     def test_skill_example_lists_exactly_the_shipped_core_skills(self) -> None:
         shipped = {
-            str(item["destination"]).split("/")[2]
-            for item in destinations(layer="core")
-            if str(item["destination"]).startswith(".agents/skills/")
+            str(item["destination"]).split("/")[1]
+            for item in destinations(layer="core", fanout=True)
         }
         listed = self.examples()["skill-policy.example.json"]["skills"]
         self.assertEqual(shipped, {name for name, layer in listed.items() if layer == "core"})
+
+    def test_skill_example_lists_every_target_root(self) -> None:
+        listed = self.examples()["skill-policy.example.json"]["skills_root"]
+        self.assertEqual([target["root"] for target in MANIFEST["targets"]], listed)
 
 
 class SpecHomeFamilyTests(unittest.TestCase):

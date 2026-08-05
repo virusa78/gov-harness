@@ -5,7 +5,10 @@
     "project-owned: the harness never manages it, so your edits are not drift.",
     "Keys starting with _ are ignored by the gate.",
     "",
-    "skills_root  the installed skill tree, matching the release managed root.",
+    "skills_root  the installed skill tree(s). One string or a list. The release",
+    "             fans out into every selected target root, so list the roots you",
+    "             installed. A listed root that does not exist is skipped, which",
+    "             is how selecting a subset of targets stays quiet.",
     "skills       every skill that may exist there, mapped to its owning layer.",
     "             core    shipped by the release, receipt-owned;",
     "             profile shipped by a selected profile, receipt-owned;",
@@ -17,7 +20,11 @@
     "drift in silently. List the profile skills you actually selected."
   ],
   "schema_version": 1,
-  "skills_root": ".agents/skills",
+  "skills_root": [
+    ".agents/skills",
+    ".claude/skills",
+    ".codex/skills"
+  ],
   "skills": {
     "karpathy": "core",
     "sdd-workflow": "core",

@@ -21,7 +21,7 @@ cd /path/to/your/project
 python3 ~/src/gov-harness/harness.py init \
   --project . \
   --source virusa78/gov-harness \
-  --to v0.3.0-rc.1 \
+  --to v0.4.0-rc.1 \
   --from-dir ~/src/gov-harness \
   --profile spec/openspec \
   --param golden_sample=requirements/golden.md
@@ -42,7 +42,7 @@ standalone name), which then runs the install for you.
 Three destinations, three different kinds of content:
 
 ```text
-.agents/skills/<name>/SKILL.md      skills   — agent capabilities
+<tool-root>/<name>/SKILL.md         skills   — agent capabilities
 docs/governance/rules/<name>.md     rules    — doctrine the skills read
 scripts/<name>.py|.sh               gates    — executable checks
 .harness.lock                       receipt  — version, digests, selection
@@ -52,11 +52,40 @@ A minimal install (`--profile spec/openspec`) produces exactly this:
 
 ```text
 .agents/skills/     karpathy, sdd-workflow, shell-testing-gate, truth-pipeline
+.claude/skills/     the same four
+.codex/skills/      the same four
 docs/governance/    rules/ (14 files incl. spec-home.md), 3 *-policy.example.json
 scripts/            harness.py, governance_docs.py, verify-docs.sh,
                     verify-skills.py, sync-agent-stubs.py
 .harness.lock
 ```
+
+## Agent tool roots
+
+Skills install into every declared target root, so each tool finds them in the
+place it already looks:
+
+| Target | Root | Read by |
+|---|---|---|
+| `agents` | `.agents/skills/` | tool-neutral convention |
+| `claude` | `.claude/skills/` | Claude Code, project scope |
+| `codex` | `.codex/skills/` | Codex CLI, project scope |
+
+All three are installed by default. To pick a subset, pass `--target` on
+`init` (repeatable); the choice is recorded in `.harness.lock` and honoured by
+later syncs:
+
+```bash
+python3 ~/src/gov-harness/harness.py init --project . ... --target codex
+```
+
+Every target root is a **managed root**: a file inside one that the receipt
+does not own is reported by `check` as a stray and pruned on
+`init --reinstall`. Hand-copying a skill into any of them is detected.
+
+Install into the project, never into `~/.codex/skills/` or `~/.claude/skills/`.
+Personal machine-level directories cannot carry a receipt and cannot see the
+project-local rules that the skills read.
 
 **Skills and rules are not the same thing.** A skill is a capability an agent
 loads; a rule is doctrine a skill reads. Most of what this release ships is
@@ -147,9 +176,10 @@ it is not read back from the lock).
 | Installing skills globally and expecting the OpenSpec binding to apply | The binding is a project-local rule. A globally installed skill can never see it. |
 | Editing an installed file in place | `check` reports it as drift. Use `adopt` to send the change upstream, or an `--override` to claim local ownership. |
 
-There is currently no fan-out into per-tool skill roots: the manifest declares
-no `targets`, so `.agents/skills/` is the only skill destination. Point your
-agent tool at the project's `.agents/skills/`.
+Adding a tool whose skill root is not two path segments deep (`.agents/skills`
+is two) is not currently possible: a skill links its rules as
+`../../../docs/governance/rules/…`, which only lands on the project root from a
+two-segment root. See ADR-0010.
 
 ## Working on this repository
 
@@ -158,7 +188,7 @@ For contributors to `gov-harness` itself, not for consumers:
 ```bash
 python3 -m unittest discover -v -t . -s tests -p "test_*.py"
 python3 scripts/verify_source.py
-python3 scripts/build_manifest.py --version v0.3.0-rc.1 --check
+python3 scripts/build_manifest.py --version v0.4.0-rc.1 --check
 ```
 
 Read `docs/INDEX.md` first. A rule, gate, manifest schema, ownership boundary

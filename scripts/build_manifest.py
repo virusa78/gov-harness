@@ -27,9 +27,23 @@ PROFILE_INFO = {
     "transport/nats": "NATS/JetStream messaging — ack, redelivery and DLQ discipline",
 }
 
+# Agent tool skill roots. One source installs into every selected target.
+#
+# Every root must be exactly two path segments deep: a skill links its rules as
+# ../../../docs/governance/rules/<name>.md, which only lands on the project root
+# from <root>/<skill>/SKILL.md when <root> has two segments. A three-segment
+# root would silently point every rule link one level above the project.
+# tests/test_targets.py holds that invariant.
+TARGETS = [
+    {"name": "agents", "root": ".agents/skills"},
+    {"name": "claude", "root": ".claude/skills"},
+    {"name": "codex", "root": ".codex/skills"},
+]
+TARGET_ROOT_MARKER = "{{target_root}}"
+
 # Subtrees the harness owns outright in a consumer project: anything inside
 # them that the current receipt does not own is pruned on init --reinstall/sync.
-MANAGED_ROOTS = [".agents/skills"]
+MANAGED_ROOTS = [target["root"] for target in TARGETS]
 
 # Content kinds a profile directory may carry. A directory holding none of
 # them is a family, and its children are its variants.
@@ -117,7 +131,7 @@ def entries() -> list[dict[str, object]]:
         if path.is_file():
             rel = path.relative_to(ROOT / "core/skills").as_posix()
             mappings.append(
-                (path, f".agents/skills/{rel}", "core", None, False)
+                (path, f"{TARGET_ROOT_MARKER}/{rel}", "core", None, False)
             )
     profiles = discover_profiles()
     if set(profiles) != set(PROFILE_INFO):
@@ -133,7 +147,7 @@ def entries() -> list[dict[str, object]]:
                 if path.is_file():
                     rel = path.relative_to(skills_root).as_posix()
                     mappings.append(
-                        (path, f".agents/skills/{rel}", "profile", name, False)
+                        (path, f"{TARGET_ROOT_MARKER}/{rel}", "profile", name, False)
                     )
         rules_root = base / "rules"
         if rules_root.is_dir():
@@ -162,6 +176,9 @@ def entries() -> list[dict[str, object]]:
             {
                 "source": source.relative_to(ROOT).as_posix(),
                 "destination": destination,
+                # Kept consistent by derivation: harness.py refuses a manifest
+                # where the marker and the flag disagree in either direction.
+                "fanout": destination.startswith(TARGET_ROOT_MARKER + "/"),
                 "layer": layer,
                 "profile": profile,
                 "templated": templated,
@@ -180,6 +197,13 @@ def manifest(version: str) -> dict[str, object]:
         "version": version,
         "required_params": ["golden_sample"],
         "managed_roots": list(MANAGED_ROOTS),
+        # No target_params: nothing shipped today differs per tool, and this
+        # repository's own design-synthesis rule forbids components that exist
+        # for hypothetical future requirements.
+        "targets": [
+            {"name": target["name"], "root": target["root"], "params": {}}
+            for target in TARGETS
+        ],
         "profile_info": [
             {"name": name, "description": PROFILE_INFO[name]}
             for name in sorted(PROFILE_INFO)

@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.4.0-rc.1 — 2026-08-04
+
+- Declare the fan-out targets ADR-0007 built the mechanism for and never used:
+  `agents` (`.agents/skills`), `claude` (`.claude/skills`) and `codex`
+  (`.codex/skills`). Skill files install into every selected root; `--target`
+  narrows the selection and the lock records it (ADR-0010).
+- Every target root is a managed root, so a hand-copied skill in any of them is
+  reported as a stray instead of drifting invisibly. That was the failure this
+  change exists for: with no supported install path, a skill tree had been
+  copied into a global `~/.codex/skills/`, where it carried no receipt and
+  every rule link inside it dangled.
+- `SKILL-G` accepts a list of `skills_root` values. A listed root that is not
+  installed is skipped so a target subset stays quiet; no installed root at all
+  is a finding. A single string still works.
+- No `target_params`: nothing shipped differs per tool yet, and the overlay
+  stays available for the release that first needs it.
+
+Consumers of `v0.3.x` gain `.claude/skills/` and `.codex/skills/` on a plain
+`sync`, because an old lock records no targets and the installer then selects
+every declared one. Reinstall with `--target` to narrow it; `sync` has no
+target flag, since changing what is installed is a selection change rather than
+an update.
+
 ## v0.3.0-rc.1 — 2026-08-04
 
 - New `spec/` profile family: `spec/openspec`, `spec/kiro` and `spec/plain` are

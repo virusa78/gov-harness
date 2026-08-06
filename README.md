@@ -21,7 +21,7 @@ cd /path/to/your/project
 python3 ~/src/gov-harness/harness.py init \
   --project . \
   --source virusa78/gov-harness \
-  --to v0.6.0-rc.1 \
+  --to v0.8.0-rc.1 \
   --from-dir ~/src/gov-harness \
   --profile spec/openspec \
   --param golden_sample=requirements/golden.md
@@ -155,6 +155,52 @@ archive. If the CLI is missing, the binding reports a prerequisite gap rather
 than falling back to another layout, because a silent fallback is how a
 repository grows a second home of truth. See ADR-0008.
 
+## Reaching tools that do not load skills
+
+Most agent tools read `AGENTS.md` rather than a skill directory. The gate
+splices a generated section into yours, leaving every other byte alone:
+
+```bash
+python3 scripts/sync-agent-stubs.py --root . --write   # create or refresh
+python3 scripts/sync-agent-stubs.py --root .           # exit 2 if stale
+```
+
+The block holds **pointers, not doctrine** — it names where the rules live and
+the single-specification-home invariant, and stops there. A copy of the rules
+in a file every tool reads on every task would be the copy that rots. Edits
+outside the markers are yours and never reported. Remove `agents_file` from
+`stub-policy.json` to opt out entirely. See ADR-0013.
+
+## Proving the work is done
+
+Thirteen of the checks above prove the repository's *state*. This one proves
+the *work*: a completion claim becomes a record produced by running something,
+and it expires when the code changes.
+
+```bash
+# run it and record what happened — a failing command records a failure
+python3 scripts/verify-evidence.py record --requirement LOT-U1 -- pytest tests/test_refund.py
+
+# refuse any requirement without a fresh passing record
+python3 scripts/verify-evidence.py verify
+python3 scripts/verify-evidence.py verify --replay   # re-run and compare
+```
+
+Each record carries the command, its exit code, a digest of its output, and
+**the commit the tree was at**. That last field is the point: evidence made
+before the current commit is not evidence for the current code, so "I tested it
+earlier" and "it worked before the refactor" are refused without re-running
+anything.
+
+Be honest about the two modes. Plain `verify` proves a record exists at this
+commit — a record whose exit code was typed rather than observed passes it.
+`--replay` re-runs each command and catches that. A corrupt journal line fails
+the gate rather than being skipped.
+
+Configure `requirement_pattern` in `docs-policy.json` to match your
+specification home; leave it unset and the gate skips and says so. See
+ADR-0014.
+
 ## Verifying the release signature
 
 Without a key, `harness.py` checks the archive against a `SHA256SUMS` served by
@@ -253,7 +299,7 @@ For contributors to `gov-harness` itself, not for consumers:
 ```bash
 python3 -m unittest discover -v -t . -s tests -p "test_*.py"
 python3 scripts/verify_source.py
-python3 scripts/build_manifest.py --version v0.6.0-rc.1 --check
+python3 scripts/build_manifest.py --version v0.8.0-rc.1 --check
 ```
 
 Read `docs/INDEX.md` first. A rule, gate, manifest schema, ownership boundary

@@ -10,6 +10,13 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CORE_GATES = {
+    "governance_docs.py",
+    "sync_agent_stubs.py",
+    "verify-docs.sh",
+    "verify_evidence.py",
+    "verify_skills.py",
+}
 CORE_SKILLS = {
     "karpathy",
     "sdd-workflow",
@@ -113,6 +120,9 @@ def main() -> int:
         if declared != name:
             fail(f"skill directory/name mismatch: {name} != {declared}")
 
+    gates = {path.name for path in (ROOT / "core/gates").iterdir() if path.is_file()}
+    if gates != CORE_GATES:
+        fail(f"core gate inventory differs: {sorted(gates)}")
     policies = {path.name for path in (ROOT / "core/policies").glob("*.json")}
     if policies != POLICIES:
         fail(f"core policy inventory differs: {sorted(policies)}")
@@ -201,7 +211,9 @@ def main() -> int:
 
     for root in (ROOT / "core", ROOT / "profiles"):
         for path in root.rglob("*"):
-            if not path.is_file():
+            # Compiled bytecode embeds the absolute build path, so scanning it
+            # for machine-bound paths reports the interpreter, not the source.
+            if not path.is_file() or "__pycache__" in path.parts:
                 continue
             text = path.read_text(encoding="utf-8", errors="replace")
             for marker in FORBIDDEN:

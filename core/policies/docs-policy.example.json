@@ -15,7 +15,18 @@
     "spec_homes        DOC-G6: every candidate specification home in this repository.",
     "                  An empty list skips the gate.",
     "spec_home         DOC-G6: the one home that owns present-tense requirement truth.",
-    "                  null means undeclared: the gate then only refuses two populated homes."
+    "                  null means undeclared: the gate then only refuses two populated homes.",
+    "",
+    "evidence_journal      EVID-G: append-only record of what was actually run.",
+    "requirements_source   EVID-G: file or directory holding requirement ids.",
+    "                      Defaults to spec_home when unset.",
+    "requirement_pattern   EVID-G: regex with one capture group naming a",
+    "                      requirement. Leave unset to skip the gate. Examples:",
+    "                        OpenSpec  ^###\\\\s+Requirement:\\\\s*(.+?)\\\\s*$",
+    "                        numeric   ^###\\\\s+([0-9]+\\\\.[0-9]+)\\\\b",
+    "                      A completion claim without a matching fresh record is",
+    "                      refused; evidence is bound to the commit it ran at, so",
+    "                      it goes stale the moment the code changes."
   ],
   "schema_version": 1,
   "link_roots": [
@@ -42,5 +53,8 @@
     "requirements",
     "spec"
   ],
-  "spec_home": null
+  "spec_home": null,
+  "evidence_journal": ".evidence.jsonl",
+  "requirements_source": null,
+  "requirement_pattern": null
 }

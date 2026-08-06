@@ -6,7 +6,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:e60076727e49c2eb493356451ff4cc2f9c7671523535222a639e04b14b15e954",
+      "sha256": "sha256:7ee31a49d67d298453144b5aff747581864144331f8a573d741bdc9691ab0df4",
       "source": "core/policies/docs-policy.example.json",
       "templated": false
     },
@@ -219,7 +219,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:bf755474f82cf193f7fa50d8d80d760235d7862daeecdb0b226f53b2643b4e4c",
+      "sha256": "sha256:0d322507e0b3257d4b8ac234d28330b39d37d317661b0b4e3ce39ebf6e0d7f66",
       "source": "core/policies/stub-policy.example.json",
       "templated": false
     },
@@ -249,7 +249,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:4af6d63e3759423b8977085f2bfb7c1f5b6175968b1dd2258500a909850c3ab1",
+      "sha256": "sha256:1bda5e422198764f58bf955cf910a16f1a4765f7da1a505f7645e841d04c23a6",
       "source": "core/gates/sync_agent_stubs.py",
       "templated": false
     },
@@ -271,6 +271,16 @@
       "profile": null,
       "sha256": "sha256:5ca5e8fcecb69bd0656d204ea552824825110802d5a96de3001142512f69010a",
       "source": "core/gates/verify-docs.sh",
+      "templated": false
+    },
+    {
+      "destination": "scripts/verify-evidence.py",
+      "executable": true,
+      "fanout": false,
+      "layer": "core",
+      "profile": null,
+      "sha256": "sha256:18249d865eed033be53be63b5eb85a318d4044ab6e81d6e89d72f1d660c538ea",
+      "source": "core/gates/verify_evidence.py",
       "templated": false
     },
     {
@@ -618,5 +628,5 @@
       "repo": "https://github.com/obra/superpowers"
     }
   ],
-  "version": "v0.6.0-rc.1"
+  "version": "v0.8.0-rc.1"
 }

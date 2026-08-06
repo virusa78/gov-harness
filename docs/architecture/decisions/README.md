@@ -16,3 +16,5 @@
 | [ADR-0010](0010-skills-fan-out-into-declared-tool-roots.md) | Skills fan out into declared agent tool roots; every root is managed and two segments deep | Accepted |
 | [ADR-0011](0011-the-harness-governs-content-it-did-not-author.md) | Foreign content is vendored and pinned by static composition; the installer never fetches from an upstream | Accepted |
 | [ADR-0012](0012-the-release-is-signed-and-the-key-comes-from-the-consumer.md) | The release is signed; the verifying key is supplied by the consumer, never by the release | Accepted |
+| [ADR-0013](0013-doctrine-is-visible-through-a-generated-agents-md-block.md) | Doctrine reaches non-skill tools through a generated block inside the consumer's AGENTS.md | Accepted |
+| [ADR-0014](0014-a-completion-claim-is-a-record-that-goes-stale.md) | A completion claim is a recorded command bound to a commit; it expires when the code changes | Accepted |

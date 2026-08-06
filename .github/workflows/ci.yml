@@ -3,6 +3,9 @@ name: governance-source
 on:
   push:
   pull_request:
+  # A merge whose run GitHub never created leaves a commit nobody verified, and
+  # without this there is no way to ask for one after the fact.
+  workflow_dispatch:
 
 permissions:
   contents: read

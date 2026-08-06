@@ -169,6 +169,51 @@ def parse_targets(manifest: dict[str, object]) -> tuple[list[Target], list[str]]
     return targets, declared
 
 
+SIGNATURE_NAME = "SHA256SUMS.sig"
+
+
+def verify_signature(sums: Path, signature: Path, public_key: Path) -> None:
+    """Verify the detached Ed25519 signature over SHA256SUMS.
+
+    SHA256SUMS names the archive and its digest, so a valid signature over it
+    covers the archive transitively. The key is supplied by the consumer and
+    never travels with the release: a digest served by the same host it
+    authenticates proves transport integrity, not authenticity.
+
+    Verification shells out to openssl rather than implementing Ed25519 here.
+    Hand-rolled verification in a trust root is a worse risk than the
+    dependency, and this file stays free of third-party Python either way.
+    """
+    if not public_key.is_file():
+        raise HarnessError(f"public key is missing: {public_key}")
+    if not signature.is_file():
+        raise HarnessError(
+            "release is not signed but a public key is configured; "
+            f"expected {SIGNATURE_NAME} alongside SHA256SUMS"
+        )
+    try:
+        done = subprocess.run(
+            [
+                "openssl", "pkeyutl", "-verify", "-pubin",
+                "-inkey", str(public_key), "-rawin",
+                "-in", str(sums), "-sigfile", str(signature),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise HarnessError(
+            f"cannot run openssl to verify the release signature: {exc}"
+        ) from exc
+    if done.returncode != 0:
+        raise HarnessError(
+            "release signature verification failed: "
+            + (done.stderr.strip() or done.stdout.strip() or "openssl rejected it")
+        )
+
+
 UPSTREAM_COMMIT = __import__("re").compile(r"[0-9a-f]{40}")
 
 
@@ -704,6 +749,7 @@ def build_lock(
     receipt: dict[str, dict[str, object]],
     targets: list[str] | None = None,
     managed_roots: Iterable[str] | None = None,
+    public_key: Path | None = None,
 ) -> dict[str, object]:
     lock: dict[str, object] = {
         "schema_version": 1,
@@ -720,6 +766,10 @@ def build_lock(
         lock["targets"] = sorted(targets)
     if managed_roots:
         lock["managed_roots"] = sorted(managed_roots)
+    if public_key is not None:
+        # Recorded so later syncs keep requiring a signature. The key itself
+        # stays outside the release; only its location is remembered.
+        lock["public_key"] = str(public_key)
     return lock
 
 
@@ -939,23 +989,29 @@ def safe_extract(archive: Path, destination: Path) -> None:
         raise HarnessError(f"cannot extract release archive: {exc}") from exc
 
 
-def from_network(source: str, version: str) -> Release:
+def from_network(source: str, version: str, public_key: Path | None = None) -> Release:
     owner, repo = parse_source_repo(source)
     temporary = Path(tempfile.mkdtemp(prefix="gov-harness-release-"))
     archive_name = f"gov-harness-{version}.tar.gz"
     base = f"https://github.com/{owner}/{repo}/releases/download/{version}"
     archive = temporary / archive_name
     sums = temporary / "SHA256SUMS"
+    signature = temporary / SIGNATURE_NAME
     try:
+        wanted = [(archive_name, archive), ("SHA256SUMS", sums)]
+        if public_key is not None:
+            wanted.append((SIGNATURE_NAME, signature))
         if os.environ.get(TOKEN_ENV):
             assets = private_release_assets(owner, repo, version)
-            for name, destination in ((archive_name, archive), ("SHA256SUMS", sums)):
+            for name, destination in wanted:
                 if name not in assets:
                     raise HarnessError(f"release does not contain asset {name}")
                 download(assets[name], destination)
         else:
-            download(f"{base}/{archive_name}", archive)
-            download(f"{base}/SHA256SUMS", sums)
+            for name, destination in wanted:
+                download(f"{base}/{name}", destination)
+        if public_key is not None:
+            verify_signature(sums, signature, public_key)
         expected: str | None = None
         for line in sums.read_text(encoding="utf-8").splitlines():
             parts = line.split()
@@ -987,8 +1043,39 @@ def from_network(source: str, version: str) -> Release:
         raise
 
 
-def acquire_release(source: str, version: str, from_dir: str | None) -> Release:
-    return from_directory(from_dir, version) if from_dir else from_network(source, version)
+def signing_key(
+    args: argparse.Namespace, old_lock: dict[str, object] | None = None
+) -> Path | None:
+    """Resolve the release-signing public key: flag first, then the lock.
+
+    Once a project records a key, later syncs keep requiring a signature
+    without repeating the flag. Dropping the requirement is an explicit
+    re-init, never a forgotten argument.
+    """
+    raw = getattr(args, "public_key", None)
+    if raw is None and old_lock is not None:
+        recorded = old_lock.get("public_key")
+        if recorded is not None:
+            if not isinstance(recorded, str):
+                raise HarnessError("lock public_key must be a string")
+            raw = recorded
+    if raw is None:
+        return None
+    key = Path(raw).expanduser()
+    if not key.is_file():
+        raise HarnessError(f"public key is missing: {key}")
+    return key
+
+
+def acquire_release(
+    source: str, version: str, from_dir: str | None, public_key: Path | None = None
+) -> Release:
+    if from_dir:
+        # A local directory is outside the trust chain by construction: the
+        # operator already controls those bytes. The lock records that this
+        # acquisition was unsigned so the fact stays visible.
+        return from_directory(from_dir, version)
+    return from_network(source, version, public_key)
 
 
 def cleanup_release(release: Release | None) -> None:
@@ -1011,7 +1098,8 @@ def command_init(args: argparse.Namespace) -> int:
     params = parse_assignments(args.param, "parameter")
     release: Release | None = None
     try:
-        release = acquire_release(args.source, args.to, args.from_dir)
+        public_key = signing_key(args)
+        release = acquire_release(args.source, args.to, args.from_dir, public_key)
         targets = args.target or [target.name for target in release.targets]
         payload, receipt = materialize(
             release, args.profile, params, args.override, targets
@@ -1026,6 +1114,7 @@ def command_init(args: argparse.Namespace) -> int:
             receipt,
             targets,
             release.managed_roots,
+            public_key,
         )
         prune = stray_files(project, release.managed_roots, payload, args.override)
         for path in prune:
@@ -1111,7 +1200,8 @@ def menu_choices(
 def command_select(args: argparse.Namespace) -> int:
     release: Release | None = None
     try:
-        release = acquire_release(args.source, args.to, args.from_dir)
+        public_key = signing_key(args)
+        release = acquire_release(args.source, args.to, args.from_dir, public_key)
         declared = sorted(
             {
                 entry.profile
@@ -1152,6 +1242,7 @@ def command_select(args: argparse.Namespace) -> int:
             param=args.param,
             override=args.override,
             from_dir=args.from_dir,
+            public_key=args.public_key,
             adopt_existing=False,
             reinstall=args.reinstall,
         )
@@ -1170,7 +1261,8 @@ def command_sync(args: argparse.Namespace) -> int:
     current_drift = drift(project, old_lock)
     release: Release | None = None
     try:
-        release = acquire_release(source, args.to, args.from_dir)
+        public_key = signing_key(args, old_lock)
+        release = acquire_release(source, args.to, args.from_dir, public_key)
         if not targets:
             targets = [target.name for target in release.targets]
         payload, receipt = materialize(release, profiles, params, overrides, targets)
@@ -1217,6 +1309,7 @@ def command_sync(args: argparse.Namespace) -> int:
             receipt,
             targets,
             release.managed_roots,
+            public_key,
         )
         for path in prune:
             print(f"pruning unmanaged file in a managed root: {path}")
@@ -1358,6 +1451,11 @@ def relative_to_project(path: Path, project: Path) -> str:
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--project", default=".", help="target project directory")
+    common.add_argument(
+        "--public-key",
+        help="Ed25519 public key (PEM) the release signature must verify against; "
+        "recorded in the lock so later syncs keep requiring a signature",
+    )
     root = argparse.ArgumentParser(description=__doc__)
     commands = root.add_subparsers(dest="command", required=True)
 

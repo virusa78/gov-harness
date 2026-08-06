@@ -30,6 +30,16 @@
 - Fix three schema-2 hardcodes in `harness.py` that gated capabilities on
   `schema == 2` instead of a floor. Bumping to schema 3 silently disabled
   mutually exclusive profile families, which the first schema-3 install caught.
+- Sign the release and verify it on install (ADR-0012). `package_release.py
+  --sign-key` produces a detached Ed25519 signature over `SHA256SUMS`, and
+  `harness.py --public-key` refuses an install whose signature is missing,
+  invalid, or unverifiable. Until now the digest and the bytes it authenticated
+  came from the same host, which proved transport integrity and not
+  authenticity; the receipt closed that only from the second install onward.
+  The verifying key is supplied by the consumer and never travels with the
+  release, and the requirement is recorded in the lock so later syncs keep
+  demanding it. Signing stays opt-in, so a project that passes no key behaves
+  exactly as before.
 - Record lesson L4: a mechanism nobody exercises is not a feature. Eight
   defects found in one audit shared a single cause — verification compared
   inventories instead of running a consumer's loop.

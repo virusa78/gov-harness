@@ -239,7 +239,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:39fd8f86a305f88893eb115b8c4c9fc244ee6033a3a4686ffa43e30280d845b4",
+      "sha256": "sha256:9728d9f22ba4a9e2f3cde7620d789d4caec0b24d4b8aaa78bfacb5ca22ebea14",
       "source": "harness.py",
       "templated": false
     },

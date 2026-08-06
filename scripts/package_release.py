@@ -8,6 +8,8 @@ import gzip
 import hashlib
 import io
 import json
+import subprocess
+import sys
 import tarfile
 from pathlib import Path
 
@@ -46,13 +48,41 @@ def archive(version: str) -> tuple[Path, Path]:
     return output, sums
 
 
+def sign(sums: Path, key: Path) -> Path:
+    """Sign SHA256SUMS with an Ed25519 private key (ADR-0012).
+
+    SHA256SUMS names the archive and its digest, so one signature covers the
+    release. The private key never enters this repository; it is named on the
+    command line by whoever cuts the release.
+    """
+    signature = sums.with_name(sums.name + ".sig")
+    subprocess.run(
+        [
+            "openssl", "pkeyutl", "-sign", "-inkey", str(key),
+            "-rawin", "-in", str(sums), "-out", str(signature),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return signature
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", required=True)
+    parser.add_argument(
+        "--sign-key",
+        help="Ed25519 private key (PEM) used to sign SHA256SUMS",
+    )
     args = parser.parse_args()
     output, sums = archive(args.version)
     print(output.relative_to(ROOT))
     print(sums.relative_to(ROOT))
+    if args.sign_key:
+        signature = sign(sums, Path(args.sign_key).expanduser())
+        print(signature.relative_to(ROOT))
+    else:
+        print("NOT SIGNED: pass --sign-key to produce SHA256SUMS.sig", file=sys.stderr)
     return 0
 
 

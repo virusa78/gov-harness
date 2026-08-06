@@ -155,6 +155,36 @@ archive. If the CLI is missing, the binding reports a prerequisite gap rather
 than falling back to another layout, because a silent fallback is how a
 repository grows a second home of truth. See ADR-0008.
 
+## Verifying the release signature
+
+Without a key, `harness.py` checks the archive against a `SHA256SUMS` served by
+the same host — that proves the download was not corrupted, not that the
+release is genuine. Pass the publisher's public key and the check becomes
+authenticity:
+
+```bash
+python3 ~/src/gov-harness/harness.py init --project . ... \
+  --public-key /path/to/gov-harness-release.pub.pem
+```
+
+The key is **yours**, obtained out of band, and never travels inside the
+release — a key shipped by the thing it authenticates proves nothing. The path
+is recorded in `.harness.lock`, so later syncs keep demanding a valid signature
+without repeating the flag. With a key configured, a missing signature, an
+invalid one, a missing key file, or an unusable `openssl` each refuse the
+install. Requires `openssl`; `--from-dir` installs are unsigned by construction
+and record no key. See ADR-0012.
+
+Cutting a signed release:
+
+```bash
+python3 scripts/package_release.py --version <tag> --sign-key /path/to/private.pem
+# emits dist/SHA256SUMS.sig alongside the archive; attach all three
+```
+
+Note: signing is opt-in and **this repository publishes no key yet**, so
+current releases are unsigned. `docs/HARDENING.md` tracks it.
+
 ## Configure the gates
 
 The shipped gates read project-owned policy files. Copy the examples once and

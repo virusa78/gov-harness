@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.8.0-rc.1 — 2026-08-06
+
+- New gate `EVID-G` (`scripts/verify-evidence.py`): a completion claim is a
+  record produced by running something, not a sentence (ADR-0014). Until now
+  thirteen checks proved the repository's *state* and nothing proved the *work*
+  — `sdd-workflow` asked an agent never to infer completion from an exit code
+  or its own statement, and asking is not a gate.
+- `record --requirement ID -- <command>` runs the command and appends its exit
+  code, an output digest, and the commit the tree was at. A failing command
+  produces a failing record on purpose; the recorder reports, it never judges.
+- **Evidence goes stale.** A record made before the current commit is not
+  evidence for the current code, so "I tested it earlier" and "it worked before
+  the refactor" are refused without re-running anything. `verify` fails on a
+  requirement with no record, only stale ones, or only failing ones, and on
+  evidence naming a requirement that no longer exists.
+- `verify --replay` re-runs each recorded command and compares. Without it a
+  hand-written record passes; with it, fabrication is caught. Both are offered
+  because their costs differ by orders of magnitude, and a green cheap `verify`
+  is documented as proving a record exists, not that it was ever run.
+- A corrupt journal line fails the gate rather than being skipped, and the gate
+  skips entirely when `requirement_pattern` is unconfigured.
+
 ## v0.7.0-rc.1 — 2026-08-06
 
 - Doctrine now reaches tools that have no concept of a skill (ADR-0013).

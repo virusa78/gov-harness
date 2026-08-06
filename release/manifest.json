@@ -6,7 +6,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:e60076727e49c2eb493356451ff4cc2f9c7671523535222a639e04b14b15e954",
+      "sha256": "sha256:7ee31a49d67d298453144b5aff747581864144331f8a573d741bdc9691ab0df4",
       "source": "core/policies/docs-policy.example.json",
       "templated": false
     },
@@ -271,6 +271,16 @@
       "profile": null,
       "sha256": "sha256:5ca5e8fcecb69bd0656d204ea552824825110802d5a96de3001142512f69010a",
       "source": "core/gates/verify-docs.sh",
+      "templated": false
+    },
+    {
+      "destination": "scripts/verify-evidence.py",
+      "executable": true,
+      "fanout": false,
+      "layer": "core",
+      "profile": null,
+      "sha256": "sha256:18249d865eed033be53be63b5eb85a318d4044ab6e81d6e89d72f1d660c538ea",
+      "source": "core/gates/verify_evidence.py",
       "templated": false
     },
     {
@@ -618,5 +628,5 @@
       "repo": "https://github.com/obra/superpowers"
     }
   ],
-  "version": "v0.7.0-rc.1"
+  "version": "v0.8.0-rc.1"
 }

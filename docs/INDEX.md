@@ -2,6 +2,7 @@
 
 - [ADR index](architecture/decisions/README.md)
 - [Hardening status](HARDENING.md)
+- [Release signing and key custody](SIGNING.md)
 - [Release history](../CHANGELOG.md)
 - `core/rules/` — the only stack-neutral rule home (13 rules)
 - `core/skills/` — four project-neutral skills

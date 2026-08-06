@@ -23,8 +23,10 @@ Promotion requires all of:
   2026-08-04;
 - CODEOWNERS enforcement for `core/rules/`, `core/gates/`, `harness.py` and
   release tooling;
-- cryptographically signed, verified release tags — the verification mechanism
-  now exists (ADR-0012) but no key is published, so releases are still unsigned;
+- cryptographically signed, verified release tags — verification exists
+  (ADR-0012) and the custody procedure is written down (`docs/SIGNING.md`), but
+  no key has been generated, so releases are still unsigned. The key must be
+  created on the release machine and never transmitted;
 - a clean external pilot loop for the exact candidate.
 
 Absence of those controls is reported as a prerequisite gap, not waived by a

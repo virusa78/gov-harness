@@ -209,7 +209,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:292448b47bb48937bf743d534d1ba8634a62f0974e4265bfbd39bc0ec86b8f9c",
+      "sha256": "sha256:2b9c50f26ce53e6767c5e3a75f9b730562cef2c7d2f63424d4e8bd7976878021",
       "source": "core/policies/skill-policy.example.json",
       "templated": false
     },
@@ -239,7 +239,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:9728d9f22ba4a9e2f3cde7620d789d4caec0b24d4b8aaa78bfacb5ca22ebea14",
+      "sha256": "sha256:e48b7556d9ff85feb2096202aa59632fbf92b42cd7e413ab47216e7519529ab2",
       "source": "harness.py",
       "templated": false
     },
@@ -279,7 +279,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:38d53953a442d0e057e1d6ab80d8a6f39a366afbf4bc7e7dc8e64d7050d61d57",
+      "sha256": "sha256:7d3557b7f488bc4b8f9e408667394bae5ad4a529ca289431973f4c0d172db0d7",
       "source": "core/gates/verify_skills.py",
       "templated": false
     },
@@ -551,7 +551,10 @@
   "profile_info": [
     {
       "description": "ADR workflow and the ADR-G gate \u2014 requires docs/architecture/decisions/",
-      "name": "adr"
+      "name": "adr",
+      "requires": [
+        "docs/architecture/decisions"
+      ]
     },
     {
       "description": "C# financial-backend skills",
@@ -615,5 +618,5 @@
       "repo": "https://github.com/obra/superpowers"
     }
   ],
-  "version": "v0.5.0-rc.1"
+  "version": "v0.6.0-rc.1"
 }

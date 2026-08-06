@@ -73,6 +73,7 @@ class Release:
     targets: tuple[Target, ...] = ()
     managed_roots: tuple[str, ...] = ()
     profile_info: tuple[tuple[str, str], ...] = ()
+    requires: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 def digest_bytes(value: bytes) -> str:
@@ -268,13 +269,15 @@ def profile_family(name: str | None) -> str | None:
 
 
 def parse_profile_info(
-    manifest: dict[str, object], declared: set[str]
+    manifest: dict[str, object], declared: set[str],
+    requires: dict[str, list[str]] | None = None,
 ) -> list[tuple[str, str]]:
     raw = manifest.get("profile_info", [])
     if not isinstance(raw, list):
         raise HarnessError("profile_info must be a list")
     seen: set[str] = set()
     info: list[tuple[str, str]] = []
+    requires = {} if requires is None else requires
     for index, item in enumerate(raw):
         if not isinstance(item, dict):
             raise HarnessError(f"profile_info[{index}] must be an object")
@@ -287,6 +290,10 @@ def parse_profile_info(
         if name not in declared:
             raise HarnessError(f"profile_info describes unknown profile: {name}")
         seen.add(name)
+        for entry in string_list(item.get("requires", []), f"profile_info[{index}].requires"):
+            requires.setdefault(name, []).append(
+                normalized_relative(entry, f"profile_info[{index}].requires entry")
+            )
         info.append((name, description))
     return info
 
@@ -510,7 +517,8 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
     declared_profiles = {
         entry.profile for entry in files if entry.layer == "profile" and entry.profile
     }
-    profile_info = parse_profile_info(manifest, declared_profiles)
+    profile_requires: dict[str, list[str]] = {}
+    profile_info = parse_profile_info(manifest, declared_profiles, profile_requires)
     if schema == 1 and profile_info:
         raise HarnessError("manifest profile_info requires schema_version 2")
     return Release(
@@ -521,6 +529,7 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
         targets=tuple(targets),
         managed_roots=tuple(managed_roots),
         profile_info=tuple(profile_info),
+        requires=tuple((k, tuple(v)) for k, v in sorted(profile_requires.items())),
     )
 
 
@@ -582,7 +591,20 @@ def selected_files(
         entry.profile for entry in release.files if entry.layer == "profile" and entry.profile
     }
     if unknown := sorted(chosen - declared):
-        raise HarnessError(f"unknown profile(s): {', '.join(unknown)}")
+        # A profile that moved into a family keeps its variant name, so an old
+        # lock names it without the family. Say so instead of leaving a
+        # migrating operator to find it in the changelog.
+        hints = []
+        for name in unknown:
+            renamed = sorted(
+                item for item in declared if item and item.split("/")[-1] == name
+            )
+            if renamed:
+                hints.append(f"{name} -> {' or '.join(renamed)}")
+        message = f"unknown profile(s): {', '.join(unknown)}"
+        if hints:
+            message += f" (renamed: {'; '.join(hints)})"
+        raise HarnessError(message)
     by_family: dict[str, list[str]] = {}
     for name in sorted(chosen):
         family = profile_family(name)
@@ -621,6 +643,26 @@ def validate_overrides(overrides: list[str]) -> None:
             raise HarnessError(f"unsafe override[{index}]: {pattern!r}")
         literal = pattern.replace("**", "x").replace("*", "x").replace("?", "x")
         normalized_relative(literal, f"override[{index}]")
+
+
+def check_prerequisites(project: Path, release: Release, profiles: Iterable[str]) -> None:
+    """Refuse a profile whose declared prerequisite paths are absent.
+
+    A profile that needs something from the consumer says so in the manifest,
+    and a path is cheap and deterministic to check, so it is checked before
+    installing rather than discovered later by a gate. Tool prerequisites the
+    harness cannot see stay the binding's job to report.
+    """
+    declared = dict(release.requires)
+    missing: list[str] = []
+    for name in sorted(set(profiles)):
+        for entry in declared.get(name, ()):  # type: ignore[arg-type]
+            if not (project / entry).exists():
+                missing.append(f"{name} requires {entry}")
+    if missing:
+        raise HarnessError(
+            "profile prerequisite is missing: " + "; ".join(missing)
+        )
 
 
 def materialize(
@@ -1037,6 +1079,7 @@ def from_network(source: str, version: str, public_key: Path | None = None) -> R
             targets=release.targets,
             managed_roots=release.managed_roots,
             profile_info=release.profile_info,
+            requires=release.requires,
         )
     except Exception:
         shutil.rmtree(temporary, ignore_errors=True)
@@ -1100,6 +1143,7 @@ def command_init(args: argparse.Namespace) -> int:
     try:
         public_key = signing_key(args)
         release = acquire_release(args.source, args.to, args.from_dir, public_key)
+        check_prerequisites(project, release, args.profile)
         targets = args.target or [target.name for target in release.targets]
         payload, receipt = materialize(
             release, args.profile, params, args.override, targets

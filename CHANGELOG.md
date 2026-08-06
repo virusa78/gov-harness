@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.6.0-rc.1 — 2026-08-06
+
+Three defects found by installing over a live `v0.1.0-rc.8` pilot. None was
+visible to the unit suite or the source verifier: each needed a real project
+with a real prior install, which is lesson L4 applied rather than restated.
+
+- `SKILL-G` reads receipt-owned skills from `.harness.lock` instead of making
+  the policy restate them. An unedited example over a real install produced
+  thirty findings, because the example listed four core skills and the project
+  had fourteen. The lock already records the layer of each, so restating it was
+  a second copy of the same fact and the first thing to rot when a profile
+  selection changed. `skills` in the policy is now for local skills only; a
+  receipt-owned skill may still be named there but must agree with the lock.
+  Hand-copied skills are still caught.
+- A profile may declare paths the consumer must already have, via `requires` in
+  `profile_info`, and `init` refuses when they are absent. `adr` declared its
+  need for `docs/architecture/decisions/` in prose only, so installing it into a
+  project without one succeeded and failed later at the gate. Tool
+  prerequisites the harness cannot see stay the binding's job to report.
+- Refusing an unknown profile now names its replacement when one exists. A lock
+  from `v0.1.x` says `csharp-fintech`, which ADR-0007 renamed to
+  `lang/csharp-fintech`, and the old message left a migrating operator to find
+  that in the changelog.
+
 ## v0.5.0-rc.1 — 2026-08-06
 
 - Manifest schema 3: the release may carry content it did not author, vendored

@@ -42,6 +42,10 @@ TARGETS = [
 ]
 TARGET_ROOT_MARKER = "{{target_root}}"
 
+# Paths a profile needs the consumer to already have. Checked at install time,
+# because a path is cheap and deterministic to verify — unlike a tool.
+PROFILE_REQUIRES = {"adr": ["docs/architecture/decisions"]}
+
 # Subtrees the harness owns outright in a consumer project: anything inside
 # them that the current receipt does not own is pruned on init --reinstall/sync.
 MANAGED_ROOTS = [target["root"] for target in TARGETS]
@@ -266,6 +270,7 @@ def manifest(version: str) -> dict[str, object]:
         ],
         "profile_info": [
             {"name": name, "description": PROFILE_INFO[name]}
+            | ({"requires": PROFILE_REQUIRES[name]} if name in PROFILE_REQUIRES else {})
             for name in sorted(PROFILE_INFO)
         ],
         "files": entries(),

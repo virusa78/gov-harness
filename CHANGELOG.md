@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add `workflow_dispatch` to the source workflow. Several merges landed while
+  GitHub Actions was failing to resolve action downloads, so no run was created
+  for them at all, and there was no way to ask for one afterwards — the commits
+  sat on `main` verified only locally.
+
 - Add `docs/SIGNING.md`: key generation, custody, publication of the public
   half, rotation, and the limits of what a signature proves. The verification
   half was built in `v0.5.0-rc.1`; this is the half that cannot be automated,

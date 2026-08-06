@@ -36,6 +36,11 @@ POLICIES = {
     "skill-policy.example.json",
     "stub-policy.example.json",
 }
+# Vendored upstreams (ADR-0011): profile name -> upstream directory name.
+# Foreign content is always a profile and never core, because this repository
+# cannot vouch for bytes it did not write as invariant doctrine.
+VENDORED = {"workflow/superpowers": "superpowers"}
+COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 RULES = {
     "bdd-format.md",
     "design-discovery-full.md",
@@ -111,6 +116,47 @@ def main() -> int:
     policies = {path.name for path in (ROOT / "core/policies").glob("*.json")}
     if policies != POLICIES:
         fail(f"core policy inventory differs: {sorted(policies)}")
+
+    vendor_root = ROOT / "vendor"
+    actual_vendor = (
+        {path.name for path in vendor_root.iterdir() if path.is_dir()}
+        if vendor_root.is_dir()
+        else set()
+    )
+    if actual_vendor != set(VENDORED.values()):
+        fail(f"vendored upstream inventory differs: {sorted(actual_vendor)}")
+    for profile, name in sorted(VENDORED.items()):
+        base = vendor_root / name
+        record_path = base / "UPSTREAM.json"
+        if not record_path.is_file():
+            fail(f"vendored upstream without UPSTREAM.json: {name}")
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        if record.get("name") != name:
+            fail(f"vendor/{name} records name {record.get('name')!r}")
+        if record.get("profile") != profile:
+            fail(f"vendor/{name} records profile {record.get('profile')!r}, want {profile}")
+        if not COMMIT_SHA.fullmatch(str(record.get("commit", ""))):
+            fail(f"vendor/{name} must pin a full 40-hex commit, got {record.get('commit')!r}")
+        # A tag or branch can move under a pin; a commit cannot.
+        license_path = str(record.get("license_path", ""))
+        if not record.get("license") or not license_path:
+            fail(f"vendor/{name} must declare a license and its path")
+        if not (base / license_path).is_file():
+            fail(f"vendor/{name} does not ship its declared license: {license_path}")
+        recorded = record.get("files")
+        if not isinstance(recorded, dict) or not recorded:
+            fail(f"vendor/{name} records no files")
+        present = {
+            path.relative_to(base).as_posix()
+            for path in base.rglob("*")
+            if path.is_file() and path.name != "UPSTREAM.json"
+        }
+        if present != set(recorded):
+            fail(
+                f"vendor/{name} tree and record disagree: "
+                f"untracked={sorted(present - set(recorded))} "
+                f"missing={sorted(set(recorded) - present)}"
+            )
 
     for profile, (skills, rule_files, gate_files) in PROFILES.items():
         base = ROOT / "profiles" / profile
@@ -194,6 +240,10 @@ def main() -> int:
         fail("release manifest crosses into project truth")
     if any("latest" in str(value).lower() for value in manifest.values()):
         fail("release manifest may not use latest")
+    vendored_files = sum(
+        len(json.loads((ROOT / "vendor" / name / "UPSTREAM.json").read_text(encoding="utf-8"))["files"])
+        for name in VENDORED.values()
+    )
     profile_count = sum(len(item[0]) for item in PROFILES.values())
     rule_variants = sum(len(item[1]) for item in PROFILES.values())
     gate_variants = sum(len(item[2]) for item in PROFILES.values())
@@ -201,7 +251,7 @@ def main() -> int:
         f"source boundary clean: {len(rules)} core rules, "
         f"{len(core)} core skills, {len(policies)} core policy examples, "
         f"{profile_count} profile skills, {rule_variants} profile rule variants, "
-        f"{gate_variants} profile gates"
+        f"{gate_variants} profile gates, {vendored_files} vendored files"
     )
     return 0
 

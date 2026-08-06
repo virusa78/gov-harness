@@ -169,6 +169,86 @@ def parse_targets(manifest: dict[str, object]) -> tuple[list[Target], list[str]]
     return targets, declared
 
 
+SIGNATURE_NAME = "SHA256SUMS.sig"
+
+
+def verify_signature(sums: Path, signature: Path, public_key: Path) -> None:
+    """Verify the detached Ed25519 signature over SHA256SUMS.
+
+    SHA256SUMS names the archive and its digest, so a valid signature over it
+    covers the archive transitively. The key is supplied by the consumer and
+    never travels with the release: a digest served by the same host it
+    authenticates proves transport integrity, not authenticity.
+
+    Verification shells out to openssl rather than implementing Ed25519 here.
+    Hand-rolled verification in a trust root is a worse risk than the
+    dependency, and this file stays free of third-party Python either way.
+    """
+    if not public_key.is_file():
+        raise HarnessError(f"public key is missing: {public_key}")
+    if not signature.is_file():
+        raise HarnessError(
+            "release is not signed but a public key is configured; "
+            f"expected {SIGNATURE_NAME} alongside SHA256SUMS"
+        )
+    try:
+        done = subprocess.run(
+            [
+                "openssl", "pkeyutl", "-verify", "-pubin",
+                "-inkey", str(public_key), "-rawin",
+                "-in", str(sums), "-sigfile", str(signature),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise HarnessError(
+            f"cannot run openssl to verify the release signature: {exc}"
+        ) from exc
+    if done.returncode != 0:
+        raise HarnessError(
+            "release signature verification failed: "
+            + (done.stderr.strip() or done.stdout.strip() or "openssl rejected it")
+        )
+
+
+UPSTREAM_COMMIT = __import__("re").compile(r"[0-9a-f]{40}")
+
+
+def parse_upstreams(manifest: dict[str, object]) -> dict[str, dict[str, str]]:
+    """Provenance for vendored foreign content (ADR-0011).
+
+    Records where bytes came from. The installer never contacts an upstream:
+    vendored files travel inside the release archive like everything else.
+    """
+    raw = manifest.get("upstreams", [])
+    if not isinstance(raw, list):
+        raise HarnessError("manifest upstreams must be a list")
+    upstreams: dict[str, dict[str, str]] = {}
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise HarnessError(f"upstreams[{index}] must be an object")
+        name = item.get("name")
+        if not isinstance(name, str) or not TARGET_NAME.fullmatch(name):
+            raise HarnessError(f"invalid upstream name: {name!r}")
+        if name in upstreams:
+            raise HarnessError(f"duplicate upstream: {name}")
+        commit = item.get("commit")
+        if not isinstance(commit, str) or not UPSTREAM_COMMIT.fullmatch(commit):
+            raise HarnessError(f"upstream {name} must pin a full 40-hex commit")
+        for key in ("repo", "license"):
+            if not isinstance(item.get(key), str) or not item[key]:
+                raise HarnessError(f"upstream {name} is missing {key}")
+        upstreams[name] = {
+            "repo": str(item["repo"]),
+            "commit": commit,
+            "license": str(item["license"]),
+        }
+    return upstreams
+
+
 def parse_managed_roots(manifest: dict[str, object]) -> list[str]:
     raw = string_list(manifest.get("managed_roots", []), "managed_roots")
     roots = [normalized_relative(item, "managed_roots entry") for item in raw]
@@ -279,8 +359,11 @@ def prune_empty_directories(project: Path, managed_roots: Iterable[str]) -> None
 def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Release:
     manifest = read_json(root / MANIFEST_NAME, "release manifest")
     schema = manifest.get("schema_version")
-    if schema not in {1, 2}:
+    if schema not in {1, 2, 3}:
         raise HarnessError("unsupported release manifest schema")
+    upstreams = parse_upstreams(manifest)
+    if schema < 3 and upstreams:
+        raise HarnessError("manifest upstreams require schema_version 3")
     targets, _target_params = parse_targets(manifest)
     if schema == 1 and targets:
         raise HarnessError("manifest targets require schema_version 2")
@@ -308,7 +391,7 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
             raise HarnessError(f"fanout flag for {destination} must be boolean")
         marker = "{{" + TARGET_ROOT_PARAM + "}}"
         if fanout:
-            if schema != 2:
+            if schema < 2:
                 raise HarnessError(f"fanout requires schema_version 2: {destination}")
             if not targets:
                 raise HarnessError(f"fanout file has no targets: {destination}")
@@ -328,7 +411,7 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
             raise HarnessError(f"core file {destination} may not declare a profile")
         if layer == "profile" and not isinstance(profile, str):
             raise HarnessError(f"profile file {destination} must declare a profile")
-        if schema == 2 and layer == "profile" and not PROFILE_NAME.fullmatch(profile):
+        if schema >= 2 and layer == "profile" and not PROFILE_NAME.fullmatch(profile):
             raise HarnessError(
                 f"invalid profile name for {destination}: {profile!r} "
                 "(want family/variant or plain lowercase name)"
@@ -342,6 +425,23 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
         sha256 = raw.get("sha256")
         if not isinstance(sha256, str) or not sha256.startswith("sha256:"):
             raise HarnessError(f"invalid source digest for {destination}")
+        upstream = raw.get("upstream")
+        if upstream is not None:
+            if schema < 3:
+                raise HarnessError(f"upstream field requires schema_version 3: {destination}")
+            if not isinstance(upstream, str) or upstream not in upstreams:
+                raise HarnessError(f"undeclared upstream for {destination}: {upstream!r}")
+            if layer != "profile":
+                raise HarnessError(
+                    f"vendored content must be a profile, not core: {destination}"
+                )
+            if templated:
+                raise HarnessError(f"vendored content may not be templated: {destination}")
+            origin = raw.get("upstream_sha256")
+            if not isinstance(origin, str) or not origin.startswith("sha256:"):
+                raise HarnessError(f"invalid upstream digest for {destination}")
+            if not isinstance(raw.get("upstream_path"), str):
+                raise HarnessError(f"missing upstream_path for {destination}")
         source_path = root / source
         if not source_path.is_file() or source_path.is_symlink():
             raise HarnessError(f"release source is missing or not a regular file: {source}")
@@ -370,7 +470,7 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
             if existing is not None:
                 existing_layer, existing_profile = existing
                 same_family_variants = (
-                    schema == 2
+                    schema >= 2
                     and existing_layer == "profile"
                     and layer == "profile"
                     and existing_profile != profile
@@ -649,6 +749,7 @@ def build_lock(
     receipt: dict[str, dict[str, object]],
     targets: list[str] | None = None,
     managed_roots: Iterable[str] | None = None,
+    public_key: Path | None = None,
 ) -> dict[str, object]:
     lock: dict[str, object] = {
         "schema_version": 1,
@@ -665,6 +766,10 @@ def build_lock(
         lock["targets"] = sorted(targets)
     if managed_roots:
         lock["managed_roots"] = sorted(managed_roots)
+    if public_key is not None:
+        # Recorded so later syncs keep requiring a signature. The key itself
+        # stays outside the release; only its location is remembered.
+        lock["public_key"] = str(public_key)
     return lock
 
 
@@ -884,23 +989,29 @@ def safe_extract(archive: Path, destination: Path) -> None:
         raise HarnessError(f"cannot extract release archive: {exc}") from exc
 
 
-def from_network(source: str, version: str) -> Release:
+def from_network(source: str, version: str, public_key: Path | None = None) -> Release:
     owner, repo = parse_source_repo(source)
     temporary = Path(tempfile.mkdtemp(prefix="gov-harness-release-"))
     archive_name = f"gov-harness-{version}.tar.gz"
     base = f"https://github.com/{owner}/{repo}/releases/download/{version}"
     archive = temporary / archive_name
     sums = temporary / "SHA256SUMS"
+    signature = temporary / SIGNATURE_NAME
     try:
+        wanted = [(archive_name, archive), ("SHA256SUMS", sums)]
+        if public_key is not None:
+            wanted.append((SIGNATURE_NAME, signature))
         if os.environ.get(TOKEN_ENV):
             assets = private_release_assets(owner, repo, version)
-            for name, destination in ((archive_name, archive), ("SHA256SUMS", sums)):
+            for name, destination in wanted:
                 if name not in assets:
                     raise HarnessError(f"release does not contain asset {name}")
                 download(assets[name], destination)
         else:
-            download(f"{base}/{archive_name}", archive)
-            download(f"{base}/SHA256SUMS", sums)
+            for name, destination in wanted:
+                download(f"{base}/{name}", destination)
+        if public_key is not None:
+            verify_signature(sums, signature, public_key)
         expected: str | None = None
         for line in sums.read_text(encoding="utf-8").splitlines():
             parts = line.split()
@@ -932,8 +1043,39 @@ def from_network(source: str, version: str) -> Release:
         raise
 
 
-def acquire_release(source: str, version: str, from_dir: str | None) -> Release:
-    return from_directory(from_dir, version) if from_dir else from_network(source, version)
+def signing_key(
+    args: argparse.Namespace, old_lock: dict[str, object] | None = None
+) -> Path | None:
+    """Resolve the release-signing public key: flag first, then the lock.
+
+    Once a project records a key, later syncs keep requiring a signature
+    without repeating the flag. Dropping the requirement is an explicit
+    re-init, never a forgotten argument.
+    """
+    raw = getattr(args, "public_key", None)
+    if raw is None and old_lock is not None:
+        recorded = old_lock.get("public_key")
+        if recorded is not None:
+            if not isinstance(recorded, str):
+                raise HarnessError("lock public_key must be a string")
+            raw = recorded
+    if raw is None:
+        return None
+    key = Path(raw).expanduser()
+    if not key.is_file():
+        raise HarnessError(f"public key is missing: {key}")
+    return key
+
+
+def acquire_release(
+    source: str, version: str, from_dir: str | None, public_key: Path | None = None
+) -> Release:
+    if from_dir:
+        # A local directory is outside the trust chain by construction: the
+        # operator already controls those bytes. The lock records that this
+        # acquisition was unsigned so the fact stays visible.
+        return from_directory(from_dir, version)
+    return from_network(source, version, public_key)
 
 
 def cleanup_release(release: Release | None) -> None:
@@ -956,7 +1098,8 @@ def command_init(args: argparse.Namespace) -> int:
     params = parse_assignments(args.param, "parameter")
     release: Release | None = None
     try:
-        release = acquire_release(args.source, args.to, args.from_dir)
+        public_key = signing_key(args)
+        release = acquire_release(args.source, args.to, args.from_dir, public_key)
         targets = args.target or [target.name for target in release.targets]
         payload, receipt = materialize(
             release, args.profile, params, args.override, targets
@@ -971,6 +1114,7 @@ def command_init(args: argparse.Namespace) -> int:
             receipt,
             targets,
             release.managed_roots,
+            public_key,
         )
         prune = stray_files(project, release.managed_roots, payload, args.override)
         for path in prune:
@@ -1056,7 +1200,8 @@ def menu_choices(
 def command_select(args: argparse.Namespace) -> int:
     release: Release | None = None
     try:
-        release = acquire_release(args.source, args.to, args.from_dir)
+        public_key = signing_key(args)
+        release = acquire_release(args.source, args.to, args.from_dir, public_key)
         declared = sorted(
             {
                 entry.profile
@@ -1097,6 +1242,7 @@ def command_select(args: argparse.Namespace) -> int:
             param=args.param,
             override=args.override,
             from_dir=args.from_dir,
+            public_key=args.public_key,
             adopt_existing=False,
             reinstall=args.reinstall,
         )
@@ -1115,7 +1261,8 @@ def command_sync(args: argparse.Namespace) -> int:
     current_drift = drift(project, old_lock)
     release: Release | None = None
     try:
-        release = acquire_release(source, args.to, args.from_dir)
+        public_key = signing_key(args, old_lock)
+        release = acquire_release(source, args.to, args.from_dir, public_key)
         if not targets:
             targets = [target.name for target in release.targets]
         payload, receipt = materialize(release, profiles, params, overrides, targets)
@@ -1162,6 +1309,7 @@ def command_sync(args: argparse.Namespace) -> int:
             receipt,
             targets,
             release.managed_roots,
+            public_key,
         )
         for path in prune:
             print(f"pruning unmanaged file in a managed root: {path}")
@@ -1303,6 +1451,11 @@ def relative_to_project(path: Path, project: Path) -> str:
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--project", default=".", help="target project directory")
+    common.add_argument(
+        "--public-key",
+        help="Ed25519 public key (PEM) the release signature must verify against; "
+        "recorded in the lock so later syncs keep requiring a signature",
+    )
     root = argparse.ArgumentParser(description=__doc__)
     commands = root.add_subparsers(dest="command", required=True)
 

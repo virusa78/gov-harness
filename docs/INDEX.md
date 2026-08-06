@@ -13,6 +13,7 @@
 - `profiles/lang/csharp-fintech/skills/` — two optional C# financial-backend skills
 - `profiles/testing/python-tools/skills/` — Python verification-script discipline
 - `profiles/adr/` — opt-in ADR workflow and its `ADR-G` gate
-- `release/manifest.json` — generated release source map (schema 2, ADR-0007);
+- `vendor/` — foreign content, pinned to a commit, never fetched at install (ADR-0011)
+- `release/manifest.json` — generated release source map (schema 3, ADR-0011);
   skills fan out into the `agents`/`claude`/`codex` tool roots (ADR-0010)
 

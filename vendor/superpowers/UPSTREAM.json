@@ -1,0 +1,67 @@
+{
+  "commit": "44c9b2d6e889982ac18c27d05a19fefe335194e1",
+  "files": {
+    "LICENSE": {
+      "executable": false,
+      "sha256": "sha256:a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400"
+    },
+    "skills/dispatching-parallel-agents/SKILL.md": {
+      "executable": false,
+      "sha256": "sha256:1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c"
+    },
+    "skills/finishing-a-development-branch/SKILL.md": {
+      "executable": false,
+      "sha256": "sha256:d0ac8360ed9d59121776ef95c84bcb38e9747de0d7ae7e227dca81e437593b9b"
+    },
+    "skills/receiving-code-review/SKILL.md": {
+      "executable": false,
+      "sha256": "sha256:091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438"
+    },
+    "skills/requesting-code-review/SKILL.md": {
+      "executable": false,
+      "sha256": "sha256:d71cc01ba56d2325cf8af5f7c11837819b63ecd57de0bfdb812f7f3ff7751df8"
+    },
+    "skills/requesting-code-review/code-reviewer.md": {
+      "executable": false,
+      "sha256": "sha256:b2f2ec7596925fe52dac158fdfbca19b3a7d779d619c481e6706a6c0001662d3"
+    },
+    "skills/subagent-driven-development/SKILL.md": {
+      "executable": false,
+      "sha256": "sha256:349a08ad8b59b19b86c13a7d2f34a1a38719bf88257004a863eefefa8d9f9e40"
+    },
+    "skills/subagent-driven-development/implementer-prompt.md": {
+      "executable": false,
+      "sha256": "sha256:946601616a6f76ab3f165ef98377390968f1ec124ecef87422bc3553404e0332"
+    },
+    "skills/subagent-driven-development/re-review-prompt.md": {
+      "executable": false,
+      "sha256": "sha256:e1d8e0e65e58ccde6dc920843da9148d23e65aeb0f8932bcc30be1341a703c4c"
+    },
+    "skills/subagent-driven-development/scripts/review-package": {
+      "executable": true,
+      "sha256": "sha256:fac3d4bd7f94369e8037b9ead2a8a502dca6ab333902b560b9455dbb3c450ebe"
+    },
+    "skills/subagent-driven-development/scripts/sdd-workspace": {
+      "executable": true,
+      "sha256": "sha256:95a09d9d3983ad1aafd093ca72b4587946dea885c6e302caa02a779a2f911c31"
+    },
+    "skills/subagent-driven-development/scripts/task-brief": {
+      "executable": true,
+      "sha256": "sha256:d6954ef7841c7da3d77373e6ff5118b3f2f2e998606fd95d33e6527851bce044"
+    },
+    "skills/subagent-driven-development/task-reviewer-prompt.md": {
+      "executable": false,
+      "sha256": "sha256:e3b4a1bfe7cd55ed0459e5ca9cdddb6ff086c345b99e9097036db6a18545729e"
+    },
+    "skills/using-git-worktrees/SKILL.md": {
+      "executable": false,
+      "sha256": "sha256:8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd"
+    }
+  },
+  "license": "MIT",
+  "license_path": "LICENSE",
+  "name": "superpowers",
+  "profile": "workflow/superpowers",
+  "repo": "https://github.com/obra/superpowers",
+  "schema_version": 1
+}

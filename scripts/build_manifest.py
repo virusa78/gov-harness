@@ -18,6 +18,7 @@ MANIFEST = ROOT / "release/manifest.json"
 # description without a profile directory fails the build.
 PROFILE_INFO = {
     "adr": "ADR workflow and the ADR-G gate — requires docs/architecture/decisions/",
+    "workflow/superpowers": "Git worktree, subagent and code-review workflow (vendored, MIT)",
     "lang/csharp-fintech": "C# financial-backend skills",
     "spec/kiro": "Specification home — .kiro/specs/, reviewer-verified only",
     "spec/openspec": "Specification home — OpenSpec (needs the global CLI)",
@@ -52,6 +53,23 @@ SUBTREES = ("skills", "rules", "gates")
 
 def digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def vendored() -> list[dict[str, object]]:
+    """Read every vendored upstream record (ADR-0011). Never touches network."""
+    root = ROOT / "vendor"
+    if not root.is_dir():
+        return []
+    records = []
+    for path in sorted(root.iterdir()):
+        record_path = path / "UPSTREAM.json"
+        if not record_path.is_file():
+            raise RuntimeError(f"vendored tree without UPSTREAM.json: vendor/{path.name}")
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        if record.get("name") != path.name:
+            raise RuntimeError(f"vendor/{path.name} records name {record.get('name')!r}")
+        records.append(record)
+    return records
 
 
 def discover_profiles() -> dict[str, Path]:
@@ -134,9 +152,11 @@ def entries() -> list[dict[str, object]]:
                 (path, f"{TARGET_ROOT_MARKER}/{rel}", "core", None, False)
             )
     profiles = discover_profiles()
-    if set(profiles) != set(PROFILE_INFO):
-        missing = sorted(set(profiles) - set(PROFILE_INFO))
-        stale = sorted(set(PROFILE_INFO) - set(profiles))
+    # A vendored upstream contributes a profile without a profiles/ directory.
+    declared = set(profiles) | {str(record["profile"]) for record in vendored()}
+    if declared != set(PROFILE_INFO):
+        missing = sorted(declared - set(PROFILE_INFO))
+        stale = sorted(set(PROFILE_INFO) - declared)
         raise RuntimeError(
             f"PROFILE_INFO out of date: undescribed={missing} described-but-absent={stale}"
         )
@@ -186,6 +206,37 @@ def entries() -> list[dict[str, object]]:
                 "sha256": digest(source),
             }
         )
+    for record in vendored():
+        name = str(record["name"])
+        base = ROOT / "vendor" / name
+        license_path = str(record["license_path"])
+        for relative, entry in sorted(record["files"].items()):
+            source = base / relative
+            if not source.is_file():
+                raise RuntimeError(f"missing vendored source: vendor/{name}/{relative}")
+            if relative == license_path:
+                destination = f"docs/governance/licenses/{name}.LICENSE"
+            elif relative.startswith("skills/"):
+                destination = f"{TARGET_ROOT_MARKER}/{relative[len('skills/'):]}"
+            else:
+                raise RuntimeError(f"vendored path has no destination rule: {relative}")
+            result.append(
+                {
+                    "source": source.relative_to(ROOT).as_posix(),
+                    "destination": destination,
+                    "fanout": destination.startswith(TARGET_ROOT_MARKER + "/"),
+                    "layer": "profile",
+                    "profile": str(record["profile"]),
+                    # Foreign content is never templated: rendering it would be
+                    # an unrecorded patch. Patches are the second digest.
+                    "templated": False,
+                    "executable": bool(entry["executable"]),
+                    "sha256": digest(source),
+                    "upstream": name,
+                    "upstream_path": relative,
+                    "upstream_sha256": str(entry["sha256"]),
+                }
+            )
     return sorted(
         result, key=lambda item: (str(item["destination"]), str(item["profile"]))
     )
@@ -193,8 +244,17 @@ def entries() -> list[dict[str, object]]:
 
 def manifest(version: str) -> dict[str, object]:
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "version": version,
+        "upstreams": [
+            {
+                "name": str(record["name"]),
+                "repo": str(record["repo"]),
+                "commit": str(record["commit"]),
+                "license": str(record["license"]),
+            }
+            for record in vendored()
+        ],
         "required_params": ["golden_sample"],
         "managed_roots": list(MANAGED_ROOTS),
         # No target_params: nothing shipped today differs per tool, and this

@@ -11,6 +11,19 @@
       "templated": false
     },
     {
+      "destination": "docs/governance/licenses/superpowers.LICENSE",
+      "executable": false,
+      "fanout": false,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400",
+      "source": "vendor/superpowers/LICENSE",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "LICENSE",
+      "upstream_sha256": "sha256:a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400"
+    },
+    {
       "destination": "docs/governance/rules/bdd-format.md",
       "executable": false,
       "fanout": false,
@@ -226,7 +239,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:99fd71b9544a3fe99b47c1bba20a709ec3c567c9b2eaea71777e84397841b61f",
+      "sha256": "sha256:9728d9f22ba4a9e2f3cde7620d789d4caec0b24d4b8aaa78bfacb5ca22ebea14",
       "source": "harness.py",
       "templated": false
     },
@@ -301,6 +314,32 @@
       "templated": false
     },
     {
+      "destination": "{{target_root}}/dispatching-parallel-agents/SKILL.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c",
+      "source": "vendor/superpowers/skills/dispatching-parallel-agents/SKILL.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/dispatching-parallel-agents/SKILL.md",
+      "upstream_sha256": "sha256:1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c"
+    },
+    {
+      "destination": "{{target_root}}/finishing-a-development-branch/SKILL.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:d0ac8360ed9d59121776ef95c84bcb38e9747de0d7ae7e227dca81e437593b9b",
+      "source": "vendor/superpowers/skills/finishing-a-development-branch/SKILL.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/finishing-a-development-branch/SKILL.md",
+      "upstream_sha256": "sha256:d0ac8360ed9d59121776ef95c84bcb38e9747de0d7ae7e227dca81e437593b9b"
+    },
+    {
       "destination": "{{target_root}}/karpathy/SKILL.md",
       "executable": false,
       "fanout": true,
@@ -319,6 +358,45 @@
       "sha256": "sha256:4e2e954d1b4461d9f1b47512485fb4044b679c10637182a3bf45140a38575016",
       "source": "profiles/testing/python-tools/skills/python-testing-gate/SKILL.md",
       "templated": false
+    },
+    {
+      "destination": "{{target_root}}/receiving-code-review/SKILL.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438",
+      "source": "vendor/superpowers/skills/receiving-code-review/SKILL.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/receiving-code-review/SKILL.md",
+      "upstream_sha256": "sha256:091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438"
+    },
+    {
+      "destination": "{{target_root}}/requesting-code-review/SKILL.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:d71cc01ba56d2325cf8af5f7c11837819b63ecd57de0bfdb812f7f3ff7751df8",
+      "source": "vendor/superpowers/skills/requesting-code-review/SKILL.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/requesting-code-review/SKILL.md",
+      "upstream_sha256": "sha256:d71cc01ba56d2325cf8af5f7c11837819b63ecd57de0bfdb812f7f3ff7751df8"
+    },
+    {
+      "destination": "{{target_root}}/requesting-code-review/code-reviewer.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:b2f2ec7596925fe52dac158fdfbca19b3a7d779d619c481e6706a6c0001662d3",
+      "source": "vendor/superpowers/skills/requesting-code-review/code-reviewer.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/requesting-code-review/code-reviewer.md",
+      "upstream_sha256": "sha256:b2f2ec7596925fe52dac158fdfbca19b3a7d779d619c481e6706a6c0001662d3"
     },
     {
       "destination": "{{target_root}}/sdd-workflow/SKILL.md",
@@ -341,6 +419,97 @@
       "templated": false
     },
     {
+      "destination": "{{target_root}}/subagent-driven-development/SKILL.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:b1a73aff020ebf46b061745bd9e499e123072838271f0a63471f9ffb95e20e7b",
+      "source": "vendor/superpowers/skills/subagent-driven-development/SKILL.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/subagent-driven-development/SKILL.md",
+      "upstream_sha256": "sha256:349a08ad8b59b19b86c13a7d2f34a1a38719bf88257004a863eefefa8d9f9e40"
+    },
+    {
+      "destination": "{{target_root}}/subagent-driven-development/implementer-prompt.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:946601616a6f76ab3f165ef98377390968f1ec124ecef87422bc3553404e0332",
+      "source": "vendor/superpowers/skills/subagent-driven-development/implementer-prompt.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/subagent-driven-development/implementer-prompt.md",
+      "upstream_sha256": "sha256:946601616a6f76ab3f165ef98377390968f1ec124ecef87422bc3553404e0332"
+    },
+    {
+      "destination": "{{target_root}}/subagent-driven-development/re-review-prompt.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:e1d8e0e65e58ccde6dc920843da9148d23e65aeb0f8932bcc30be1341a703c4c",
+      "source": "vendor/superpowers/skills/subagent-driven-development/re-review-prompt.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/subagent-driven-development/re-review-prompt.md",
+      "upstream_sha256": "sha256:e1d8e0e65e58ccde6dc920843da9148d23e65aeb0f8932bcc30be1341a703c4c"
+    },
+    {
+      "destination": "{{target_root}}/subagent-driven-development/scripts/review-package",
+      "executable": true,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:fac3d4bd7f94369e8037b9ead2a8a502dca6ab333902b560b9455dbb3c450ebe",
+      "source": "vendor/superpowers/skills/subagent-driven-development/scripts/review-package",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/subagent-driven-development/scripts/review-package",
+      "upstream_sha256": "sha256:fac3d4bd7f94369e8037b9ead2a8a502dca6ab333902b560b9455dbb3c450ebe"
+    },
+    {
+      "destination": "{{target_root}}/subagent-driven-development/scripts/sdd-workspace",
+      "executable": true,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:95a09d9d3983ad1aafd093ca72b4587946dea885c6e302caa02a779a2f911c31",
+      "source": "vendor/superpowers/skills/subagent-driven-development/scripts/sdd-workspace",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/subagent-driven-development/scripts/sdd-workspace",
+      "upstream_sha256": "sha256:95a09d9d3983ad1aafd093ca72b4587946dea885c6e302caa02a779a2f911c31"
+    },
+    {
+      "destination": "{{target_root}}/subagent-driven-development/scripts/task-brief",
+      "executable": true,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:d6954ef7841c7da3d77373e6ff5118b3f2f2e998606fd95d33e6527851bce044",
+      "source": "vendor/superpowers/skills/subagent-driven-development/scripts/task-brief",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/subagent-driven-development/scripts/task-brief",
+      "upstream_sha256": "sha256:d6954ef7841c7da3d77373e6ff5118b3f2f2e998606fd95d33e6527851bce044"
+    },
+    {
+      "destination": "{{target_root}}/subagent-driven-development/task-reviewer-prompt.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:e3b4a1bfe7cd55ed0459e5ca9cdddb6ff086c345b99e9097036db6a18545729e",
+      "source": "vendor/superpowers/skills/subagent-driven-development/task-reviewer-prompt.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/subagent-driven-development/task-reviewer-prompt.md",
+      "upstream_sha256": "sha256:e3b4a1bfe7cd55ed0459e5ca9cdddb6ff086c345b99e9097036db6a18545729e"
+    },
+    {
       "destination": "{{target_root}}/truth-pipeline/SKILL.md",
       "executable": false,
       "fanout": true,
@@ -359,6 +528,19 @@
       "sha256": "sha256:ba13602ca5a4ffe62196494100afb5f3cecff752406396312380d70ebf132a1d",
       "source": "core/skills/truth-pipeline/scripts/tribunal_report.py",
       "templated": false
+    },
+    {
+      "destination": "{{target_root}}/using-git-worktrees/SKILL.md",
+      "executable": false,
+      "fanout": true,
+      "layer": "profile",
+      "profile": "workflow/superpowers",
+      "sha256": "sha256:8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd",
+      "source": "vendor/superpowers/skills/using-git-worktrees/SKILL.md",
+      "templated": false,
+      "upstream": "superpowers",
+      "upstream_path": "skills/using-git-worktrees/SKILL.md",
+      "upstream_sha256": "sha256:8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd"
     }
   ],
   "managed_roots": [
@@ -398,12 +580,16 @@
     {
       "description": "NATS/JetStream messaging \u2014 ack, redelivery and DLQ discipline",
       "name": "transport/nats"
+    },
+    {
+      "description": "Git worktree, subagent and code-review workflow (vendored, MIT)",
+      "name": "workflow/superpowers"
     }
   ],
   "required_params": [
     "golden_sample"
   ],
-  "schema_version": 2,
+  "schema_version": 3,
   "targets": [
     {
       "name": "agents",
@@ -421,5 +607,13 @@
       "root": ".codex/skills"
     }
   ],
-  "version": "v0.4.0-rc.1"
+  "upstreams": [
+    {
+      "commit": "44c9b2d6e889982ac18c27d05a19fefe335194e1",
+      "license": "MIT",
+      "name": "superpowers",
+      "repo": "https://github.com/obra/superpowers"
+    }
+  ],
+  "version": "v0.5.0-rc.1"
 }

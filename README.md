@@ -21,7 +21,7 @@ cd /path/to/your/project
 python3 ~/src/gov-harness/harness.py init \
   --project . \
   --source virusa78/gov-harness \
-  --to v0.4.0-rc.1 \
+  --to v0.5.0-rc.1 \
   --from-dir ~/src/gov-harness \
   --profile spec/openspec \
   --param golden_sample=requirements/golden.md
@@ -107,6 +107,41 @@ variants are mutually exclusive — selecting two of them is refused.
 | `lang` | `csharp-fintech` | C# financial backend |
 | `testing` | `python-tools` | the project writes Python verification scripts |
 | — | `adr` | the project keeps `docs/architecture/decisions/` |
+| — | `workflow/superpowers` | you want the git-worktree, subagent and code-review workflow |
+
+## Vendored content
+
+`workflow/superpowers` ships six skills vendored from
+[obra/superpowers](https://github.com/obra/superpowers) at a pinned commit,
+under MIT. They arrive inside the release archive under the same receipt as
+everything else — **the installer never contacts an upstream**, so there are no
+live updates and no surprise changes (ADR-0011).
+
+```text
+dispatching-parallel-agents     finishing-a-development-branch
+receiving-code-review           requesting-code-review
+subagent-driven-development     using-git-worktrees
+```
+
+The set is closed under the upstream's cross-skill references, so no shipped
+file points at a capability you do not receive. The upstream addresses siblings
+through its plugin namespace; that prefix is rewritten to the bare skill name,
+because the namespace does not exist in a plain install. The rewrite is
+recorded — the manifest carries both the shipped digest and the upstream
+digest, and they differ exactly where a patch exists.
+
+**Overlap you should know about.** `requesting-code-review` and
+`receiving-code-review` describe a generic review workflow; the
+`lang/csharp-fintech` profile ships a C#-specific review *checklist*. They
+compose — one is process, the other is content. Nothing here competes with
+`sdd-workflow` for the planning lifecycle: the upstream's planning skills
+(`writing-plans`, `executing-plans`, `test-driven-development`,
+`verification-before-completion`) are deliberately **not** vendored, because a
+second owner of that lifecycle is the defect ADR-0008 removed.
+
+The upstream licence installs to `docs/governance/licenses/`. To move to a
+newer upstream commit, a maintainer runs `scripts/vendor_upstream.py fetch`
+in this repository and the change lands as an ordinary reviewed diff.
 
 `spec/openspec` needs a prerequisite the harness cannot install:
 
@@ -119,6 +154,36 @@ That generates six capabilities — propose, explore, apply, update, sync,
 archive. If the CLI is missing, the binding reports a prerequisite gap rather
 than falling back to another layout, because a silent fallback is how a
 repository grows a second home of truth. See ADR-0008.
+
+## Verifying the release signature
+
+Without a key, `harness.py` checks the archive against a `SHA256SUMS` served by
+the same host — that proves the download was not corrupted, not that the
+release is genuine. Pass the publisher's public key and the check becomes
+authenticity:
+
+```bash
+python3 ~/src/gov-harness/harness.py init --project . ... \
+  --public-key /path/to/gov-harness-release.pub.pem
+```
+
+The key is **yours**, obtained out of band, and never travels inside the
+release — a key shipped by the thing it authenticates proves nothing. The path
+is recorded in `.harness.lock`, so later syncs keep demanding a valid signature
+without repeating the flag. With a key configured, a missing signature, an
+invalid one, a missing key file, or an unusable `openssl` each refuse the
+install. Requires `openssl`; `--from-dir` installs are unsigned by construction
+and record no key. See ADR-0012.
+
+Cutting a signed release:
+
+```bash
+python3 scripts/package_release.py --version <tag> --sign-key /path/to/private.pem
+# emits dist/SHA256SUMS.sig alongside the archive; attach all three
+```
+
+Note: signing is opt-in and **this repository publishes no key yet**, so
+current releases are unsigned. `docs/HARDENING.md` tracks it.
 
 ## Configure the gates
 
@@ -188,7 +253,7 @@ For contributors to `gov-harness` itself, not for consumers:
 ```bash
 python3 -m unittest discover -v -t . -s tests -p "test_*.py"
 python3 scripts/verify_source.py
-python3 scripts/build_manifest.py --version v0.4.0-rc.1 --check
+python3 scripts/build_manifest.py --version v0.5.0-rc.1 --check
 ```
 
 Read `docs/INDEX.md` first. A rule, gate, manifest schema, ownership boundary

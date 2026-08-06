@@ -134,10 +134,27 @@ moment at which a consumer's machine contacts a foreign host.
 
 ## Implementation status
 
-Decided here and not built: the `upstreams` manifest section, the
-`upstream`/`upstream_path`/`upstream_sha256` file fields, schema 3 in
-`harness.py` and `scripts/build_manifest.py`, the vendoring and refresh tool,
-the license and overlap checks in `scripts/verify_source.py`, and the first
-vendored profile. Until they ship, the release distributes only content
-authored in this repository, and this ADR describes intent rather than release
-behaviour.
+Built in `v0.5.0-rc.1`: manifest schema 3 with `upstreams` and the
+`upstream`/`upstream_path`/`upstream_sha256` file fields, `scripts/vendor_upstream.py`
+for fetch and offline check, vendored-tree verification in
+`scripts/verify_source.py`, and the first vendored profile,
+`workflow/superpowers`, at commit `44c9b2d6` under MIT.
+
+Two things the first vendoring taught, recorded because the next one will hit
+them too:
+
+- **Upstream cross-references are a closure problem.** These skills address
+  each other through the publisher's plugin namespace. Vendoring a subset
+  chosen by usefulness would ship files pointing at capabilities the consumer
+  never receives — a dangling reference of exactly the kind this project keeps
+  finding. The vendored set must be closed under those references, and the
+  namespace prefix is rewritten to the bare skill name because the plugin
+  namespace does not exist in a plain install. That rewrite is the first real
+  use of the second digest.
+- **Executable mode does not survive a naive copy.** Upstream ships helper
+  scripts with no file extension, so the suffix heuristic that serves authored
+  content infers the wrong mode. The vendor record carries the mode explicitly,
+  which ADR-0005 already required of every receipt.
+
+Not built: signature verification of the release itself, which is a separate
+and now more urgent gap (`docs/HARDENING.md`).

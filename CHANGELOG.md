@@ -1,13 +1,35 @@
 # Changelog
 
-## Unreleased
+## v0.5.0-rc.1 — 2026-08-06
 
-- Decide that the harness may govern content it did not author, by static
-  composition: foreign bytes are vendored in-tree and pinned to a commit, the
-  installer never contacts an upstream, refreshing is a reviewed maintainer
-  operation, and a local patch is a visible second digest rather than silent
-  divergence (ADR-0011). No release behavior changes yet; the ADR records its
-  own implementation gap.
+- Manifest schema 3: the release may carry content it did not author, vendored
+  in-tree and pinned to a commit (ADR-0011). Files declare `upstream`,
+  `upstream_path` and `upstream_sha256`; a shipped digest differing from the
+  upstream digest is a recorded local patch rather than silent divergence.
+  Schema 1 and 2 manifests keep their exact prior behaviour.
+- The installer gains no network behaviour. `harness.py` never contacts an
+  upstream; vendored bytes travel inside the same archive, under the same
+  receipt, as everything else. A test asserts no upstream host appears in the
+  installer at all.
+- New profile `workflow/superpowers`: git worktree, subagent and code-review
+  workflow vendored from obra/superpowers at `44c9b2d6` under MIT. The vendored
+  set is closed under the upstream's cross-skill references, so no shipped file
+  points at a capability the consumer does not receive, and the plugin
+  namespace prefix is rewritten to bare skill names because that namespace does
+  not exist in a plain install.
+- `scripts/vendor_upstream.py`: `fetch` re-vendors at a commit and records both
+  digests plus executable mode; `check` re-derives everything offline. Adding
+  an upstream is an edit to the tool's declared set, so the list of foreign
+  sources is visible in a diff. There is no automatic refresh.
+- The vendor record carries executable mode explicitly. Upstream ships helper
+  scripts with no extension, and the suffix heuristic used for authored content
+  infers the wrong mode for them (ADR-0005).
+- `verify_source.py` fails closed on a vendored tree: pinned 40-hex commit,
+  declared and shipped license, and a record that matches the tree exactly.
+  Every upstream license installs to `docs/governance/licenses/`.
+- Fix three schema-2 hardcodes in `harness.py` that gated capabilities on
+  `schema == 2` instead of a floor. Bumping to schema 3 silently disabled
+  mutually exclusive profile families, which the first schema-3 install caught.
 - Record lesson L4: a mechanism nobody exercises is not a feature. Eight
   defects found in one audit shared a single cause — verification compared
   inventories instead of running a consumer's loop.

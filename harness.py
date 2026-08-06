@@ -169,6 +169,41 @@ def parse_targets(manifest: dict[str, object]) -> tuple[list[Target], list[str]]
     return targets, declared
 
 
+UPSTREAM_COMMIT = __import__("re").compile(r"[0-9a-f]{40}")
+
+
+def parse_upstreams(manifest: dict[str, object]) -> dict[str, dict[str, str]]:
+    """Provenance for vendored foreign content (ADR-0011).
+
+    Records where bytes came from. The installer never contacts an upstream:
+    vendored files travel inside the release archive like everything else.
+    """
+    raw = manifest.get("upstreams", [])
+    if not isinstance(raw, list):
+        raise HarnessError("manifest upstreams must be a list")
+    upstreams: dict[str, dict[str, str]] = {}
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise HarnessError(f"upstreams[{index}] must be an object")
+        name = item.get("name")
+        if not isinstance(name, str) or not TARGET_NAME.fullmatch(name):
+            raise HarnessError(f"invalid upstream name: {name!r}")
+        if name in upstreams:
+            raise HarnessError(f"duplicate upstream: {name}")
+        commit = item.get("commit")
+        if not isinstance(commit, str) or not UPSTREAM_COMMIT.fullmatch(commit):
+            raise HarnessError(f"upstream {name} must pin a full 40-hex commit")
+        for key in ("repo", "license"):
+            if not isinstance(item.get(key), str) or not item[key]:
+                raise HarnessError(f"upstream {name} is missing {key}")
+        upstreams[name] = {
+            "repo": str(item["repo"]),
+            "commit": commit,
+            "license": str(item["license"]),
+        }
+    return upstreams
+
+
 def parse_managed_roots(manifest: dict[str, object]) -> list[str]:
     raw = string_list(manifest.get("managed_roots", []), "managed_roots")
     roots = [normalized_relative(item, "managed_roots entry") for item in raw]
@@ -279,8 +314,11 @@ def prune_empty_directories(project: Path, managed_roots: Iterable[str]) -> None
 def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Release:
     manifest = read_json(root / MANIFEST_NAME, "release manifest")
     schema = manifest.get("schema_version")
-    if schema not in {1, 2}:
+    if schema not in {1, 2, 3}:
         raise HarnessError("unsupported release manifest schema")
+    upstreams = parse_upstreams(manifest)
+    if schema < 3 and upstreams:
+        raise HarnessError("manifest upstreams require schema_version 3")
     targets, _target_params = parse_targets(manifest)
     if schema == 1 and targets:
         raise HarnessError("manifest targets require schema_version 2")
@@ -308,7 +346,7 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
             raise HarnessError(f"fanout flag for {destination} must be boolean")
         marker = "{{" + TARGET_ROOT_PARAM + "}}"
         if fanout:
-            if schema != 2:
+            if schema < 2:
                 raise HarnessError(f"fanout requires schema_version 2: {destination}")
             if not targets:
                 raise HarnessError(f"fanout file has no targets: {destination}")
@@ -328,7 +366,7 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
             raise HarnessError(f"core file {destination} may not declare a profile")
         if layer == "profile" and not isinstance(profile, str):
             raise HarnessError(f"profile file {destination} must declare a profile")
-        if schema == 2 and layer == "profile" and not PROFILE_NAME.fullmatch(profile):
+        if schema >= 2 and layer == "profile" and not PROFILE_NAME.fullmatch(profile):
             raise HarnessError(
                 f"invalid profile name for {destination}: {profile!r} "
                 "(want family/variant or plain lowercase name)"
@@ -342,6 +380,23 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
         sha256 = raw.get("sha256")
         if not isinstance(sha256, str) or not sha256.startswith("sha256:"):
             raise HarnessError(f"invalid source digest for {destination}")
+        upstream = raw.get("upstream")
+        if upstream is not None:
+            if schema < 3:
+                raise HarnessError(f"upstream field requires schema_version 3: {destination}")
+            if not isinstance(upstream, str) or upstream not in upstreams:
+                raise HarnessError(f"undeclared upstream for {destination}: {upstream!r}")
+            if layer != "profile":
+                raise HarnessError(
+                    f"vendored content must be a profile, not core: {destination}"
+                )
+            if templated:
+                raise HarnessError(f"vendored content may not be templated: {destination}")
+            origin = raw.get("upstream_sha256")
+            if not isinstance(origin, str) or not origin.startswith("sha256:"):
+                raise HarnessError(f"invalid upstream digest for {destination}")
+            if not isinstance(raw.get("upstream_path"), str):
+                raise HarnessError(f"missing upstream_path for {destination}")
         source_path = root / source
         if not source_path.is_file() or source_path.is_symlink():
             raise HarnessError(f"release source is missing or not a regular file: {source}")
@@ -370,7 +425,7 @@ def parse_release(root: Path, expected_version: str, archive_sha256: str) -> Rel
             if existing is not None:
                 existing_layer, existing_profile = existing
                 same_family_variants = (
-                    schema == 2
+                    schema >= 2
                     and existing_layer == "profile"
                     and layer == "profile"
                     and existing_profile != profile

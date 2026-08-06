@@ -79,7 +79,21 @@ class LinkResolutionTests(unittest.TestCase):
     """The invariant above, checked against the actual shipped link targets."""
 
     def shipped_destinations(self) -> set[str]:
-        return {str(item["destination"]) for item in MANIFEST["files"]}
+        """Installed paths, with every fanout destination expanded per root.
+
+        A link may point at a sibling skill, which only exists once the
+        target root is substituted; comparing against raw manifest
+        destinations would miss it.
+        """
+        shipped: set[str] = set()
+        for item in MANIFEST["files"]:
+            destination = str(item["destination"])
+            if item["fanout"]:
+                suffix = destination.split("/", 1)[1]
+                shipped.update(f"{root}/{suffix}" for root in TARGET_ROOTS)
+            else:
+                shipped.add(destination)
+        return shipped
 
     def test_rule_links_resolve_from_every_target_root(self) -> None:
         shipped = self.shipped_destinations()

@@ -47,3 +47,33 @@ integrity-validated target; exact target bytes are explained, everything else
 still fails closed.
 
 Source: persistent pilot adopt loop, ADR-0002.
+
+## L4 — A mechanism nobody exercises is not a feature (2026-08-06)
+
+Symptom: an audit found the same defect eight times in one pass. Fan-out
+targets were built and never declared, so `.agents/skills` was the only skill
+root. `ADR-G` was named by a skill as a shipped gate and the file existed
+nowhere. Three gates defaulted to policy files the release never shipped and
+never documented. CI pinned `v0.1.0-rc.5` against a `v0.2.0-rc.1` manifest, so
+the reproducibility check would have failed on any run. `core/` named Kiro and
+cc-sdd while `AGENTS.md` forbade exactly that. `DOC-G2` accepted
+`status: superseded` without asking what superseded it. No `AGENTS.md` was
+shipped to consumers although a stub generator sat ready. None of it was
+visible to any check that existed.
+
+Cause: verification was structural rather than behavioural. `verify_source.py`
+compares inventories against hardcoded sets, and the unit suite exercises
+units; neither runs the loop a consumer runs. Every one of those defects is
+invisible to an inventory comparison and obvious within seconds of an actual
+install. The one control that would have caught the version drift — hosted CI —
+was the control that was never funded, so a repository whose own doctrine says
+"gate, not discipline" ran on discipline for four releases. And the ADRs were
+written in the permissive mood: ADR-0007 said the manifest *may* declare
+targets, nothing asked whether it did, and so nothing ever did.
+
+Rule: a capability the release format supports must be exercised by the release
+or explicitly recorded as unused, and every ADR states its implementation
+status; a test that installs into a scratch project and runs the shipped gates
+is mandatory for any change to the release format.
+
+Source: v0.3.0-rc.1 and v0.4.0-rc.1 audit; ADR-0008, ADR-0009, ADR-0010.

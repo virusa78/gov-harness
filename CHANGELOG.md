@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Decide that the harness may govern content it did not author, by static
+  composition: foreign bytes are vendored in-tree and pinned to a commit, the
+  installer never contacts an upstream, refreshing is a reviewed maintainer
+  operation, and a local patch is a visible second digest rather than silent
+  divergence (ADR-0011). No release behavior changes yet; the ADR records its
+  own implementation gap.
+- Record lesson L4: a mechanism nobody exercises is not a feature. Eight
+  defects found in one audit shared a single cause — verification compared
+  inventories instead of running a consumer's loop.
+
 ## v0.4.0-rc.1 — 2026-08-04
 
 - Declare the fan-out targets ADR-0007 built the mechanism for and never used:

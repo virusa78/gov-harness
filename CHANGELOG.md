@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Add `docs/SIGNING.md`: key generation, custody, publication of the public
+  half, rotation, and the limits of what a signature proves. The verification
+  half was built in `v0.5.0-rc.1`; this is the half that cannot be automated,
+  because a key generated anywhere it can be read back out attests to nothing.
+- `verify_source.py` refuses the whole tree when private key material appears
+  anywhere in it. Committing a key voids every signature it ever made and git
+  history keeps it forever. The markers are assembled at runtime so the
+  verifier is not its own finding; public keys are unaffected, since publishing
+  the public half in this repository is the documented procedure.
+
 ## v0.8.0-rc.1 — 2026-08-06
 
 - New gate `EVID-G` (`scripts/verify-evidence.py`): a completion claim is a

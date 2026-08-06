@@ -229,7 +229,9 @@ python3 scripts/package_release.py --version <tag> --sign-key /path/to/private.p
 ```
 
 Note: signing is opt-in and **this repository publishes no key yet**, so
-current releases are unsigned. `docs/HARDENING.md` tracks it.
+current releases are unsigned. `docs/SIGNING.md` covers the part that cannot be
+automated — generating the key on the release machine, publishing the public
+half, rotation, and what a signature does and does not prove.
 
 ## Configure the gates
 

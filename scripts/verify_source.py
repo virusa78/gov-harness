@@ -72,6 +72,29 @@ FORBIDDEN = (
 )
 
 
+# A private key committed here would void every signature it ever made, so the
+# verifier refuses the whole tree rather than any one path. The markers are
+# assembled rather than written out, so this file does not match itself.
+_PEM = "-" * 5 + "BEGIN {} PRIVATE KEY" + "-" * 5
+PRIVATE_KEY_MARKERS = tuple(
+    _PEM.format(kind).replace("  ", " ").strip()
+    for kind in ("", "RSA", "OPENSSH", "EC", "DSA")
+) + ("-" * 5 + "BEGIN PGP PRIVATE KEY BLOCK" + "-" * 5,)
+
+
+def check_no_private_keys(root: Path) -> None:
+    for path in root.rglob("*"):
+        if not path.is_file() or ".git" in path.parts or "__pycache__" in path.parts:
+            continue
+        try:
+            head = path.read_text(encoding="utf-8", errors="strict")[:4096]
+        except (UnicodeDecodeError, OSError):
+            continue
+        for marker in PRIVATE_KEY_MARKERS:
+            if marker in head:
+                fail(f"private key material in {path.relative_to(root)}")
+
+
 def fail(message: str) -> None:
     print(f"FAIL: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -107,6 +130,7 @@ def profile_family(name: str | None) -> str | None:
 
 
 def main() -> int:
+    check_no_private_keys(ROOT)
     core = {path.name for path in (ROOT / "core/skills").iterdir() if path.is_dir()}
     rules = {path.name for path in (ROOT / "core/rules").glob("*.md")}
     if core != CORE_SKILLS:

@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.7.0-rc.1 — 2026-08-06
+
+- Doctrine now reaches tools that have no concept of a skill (ADR-0013).
+  `sync-agent-stubs.py` splices a generated section into the consumer's
+  `AGENTS.md`, the cross-tool standard read by twenty-plus agent tools. Until
+  now the release reached an agent only through a skill root, so everything
+  outside that set saw nothing at all.
+- The harness owns the block, never the file. Every byte outside the markers is
+  left alone, an edit outside them is not a finding, and the block carries
+  pointers rather than doctrine — a copy of the rules there would be the one
+  that rots, which is what `DOC-G3` exists to prevent. The rule list is read
+  from the canonical directory, so it cannot drift from what is installed.
+- Opt-in by omission: a `stub-policy.json` without `agents_file` generates
+  nothing and reports nothing.
+
 ## v0.6.0-rc.1 — 2026-08-06
 
 Three defects found by installing over a live `v0.1.0-rc.8` pilot. None was

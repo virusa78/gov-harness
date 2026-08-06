@@ -9,15 +9,17 @@
     "             fans out into every selected target root, so list the roots you",
     "             installed. A listed root that does not exist is skipped, which",
     "             is how selecting a subset of targets stays quiet.",
-    "skills       every skill that may exist there, mapped to its owning layer.",
-    "             core    shipped by the release, receipt-owned;",
-    "             profile shipped by a selected profile, receipt-owned;",
-    "             local   authored by this project; must be covered by a lock",
-    "                     override and must not be receipt-owned.",
+    "skills       ONLY skills the receipt does not own \u2014 normally your own local",
+    "             ones. Core and profile skills are read from .harness.lock, which",
+    "             already records the layer of each, so restating them here would",
+    "             be a second copy of the same fact and the first thing to rot when",
+    "             a profile selection changes. Naming a receipt-owned skill is",
+    "             allowed but must agree with the lock.",
+    "               local   authored by this project; must be covered by a lock",
+    "                       override and must not be receipt-owned.",
     "",
-    "The gate fails on any skill present on disk but absent here, and on any",
-    "skill listed here but missing on disk, so a hand-copied skill tree cannot",
-    "drift in silently. List the profile skills you actually selected."
+    "The gate fails on any skill present on disk that neither the lock nor this",
+    "file accounts for, so a hand-copied skill tree cannot drift in silently."
   ],
   "schema_version": 1,
   "skills_root": [
@@ -25,10 +27,5 @@
     ".claude/skills",
     ".codex/skills"
   ],
-  "skills": {
-    "karpathy": "core",
-    "sdd-workflow": "core",
-    "shell-testing-gate": "core",
-    "truth-pipeline": "core"
-  }
+  "skills": {}
 }

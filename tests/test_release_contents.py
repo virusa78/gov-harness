@@ -58,13 +58,10 @@ class PolicyExampleTests(unittest.TestCase):
         # repository it has never seen.
         self.assertIsNone(docs["spec_home"])
 
-    def test_skill_example_lists_exactly_the_shipped_core_skills(self) -> None:
-        shipped = {
-            str(item["destination"]).split("/")[1]
-            for item in destinations(layer="core", fanout=True)
-        }
+    def test_skill_example_declares_no_receipt_owned_skills(self) -> None:
+        """SKILL-G reads those from the lock; restating them is what rots."""
         listed = self.examples()["skill-policy.example.json"]["skills"]
-        self.assertEqual(shipped, {name for name, layer in listed.items() if layer == "core"})
+        self.assertEqual({}, listed)
 
     def test_skill_example_lists_every_target_root(self) -> None:
         listed = self.examples()["skill-policy.example.json"]["skills_root"]

@@ -58,9 +58,31 @@ def skill_roots(policy: dict[str, object]) -> list[Path]:
     return roots
 
 
+def receipt_skills(roots: list[Path], files: dict[str, object]) -> dict[str, str]:
+    """Skills the receipt already owns, with the layer it recorded.
+
+    The lock knows which skills were installed and at which layer, so a policy
+    that restated them would be a second copy of the same fact — and the first
+    thing to rot when a profile selection changes.
+    """
+    owned: dict[str, str] = {}
+    prefixes = [f"{item.as_posix()}/" for item in roots]
+    for path, meta in files.items():
+        if not isinstance(meta, dict) or not path.endswith("/SKILL.md"):
+            continue
+        for prefix in prefixes:
+            if path.startswith(prefix):
+                name = path[len(prefix):].split("/", 1)[0]
+                layer = meta.get("layer")
+                if isinstance(layer, str):
+                    owned[name] = layer
+                break
+    return owned
+
+
 def run(root: Path, policy: dict[str, object], lock: dict[str, object]) -> list[str]:
     roots = skill_roots(policy)
-    configured = policy.get("skills")
+    configured = policy.get("skills", {})
     if not isinstance(configured, dict) or not all(
         isinstance(name, str) and layer in {"core", "profile", "local"}
         for name, layer in configured.items()
@@ -72,6 +94,15 @@ def run(root: Path, policy: dict[str, object], lock: dict[str, object]) -> list[
         raise ValueError("lock must contain files and overrides")
 
     findings: list[str] = []
+    # Receipt-owned skills come from the lock; the policy adds local ones and
+    # may still name a receipt-owned skill, which must then agree with it.
+    owned = receipt_skills(roots, files)
+    for name, layer in sorted(configured.items()):
+        if name in owned and owned[name] != layer:
+            findings.append(
+                f"{name}: policy says {layer}, receipt says {owned[name]}"
+            )
+    configured = {**owned, **configured}
     expected = set(configured)
     present = 0
     for skills_root in roots:

@@ -46,6 +46,16 @@ of them is selling a doorbell as a forensic examiner.
    edits it. The copy is unmanaged, so consumer edits are configuration rather
    than drift, and a gate that cannot load its config points at the example.
 
+## Enforcement note (v0.6.0-rc.1)
+
+Decision 2 said a profile that claims something must ship or declare it. A
+prose description is not a declaration a machine can act on, so `profile_info`
+entries now carry an optional `requires` list of consumer paths, and `init`
+refuses a selected profile whose paths are absent. The field is additive:
+manifests without it behave exactly as before. Only paths are checked, because
+a path is cheap and deterministic to verify — a tool like the OpenSpec CLI is
+not, and reporting that stays the binding's job.
+
 ## Consequences
 
 - The `adr` profile now ships `scripts/verify-adr.py`, which checks unique

@@ -2,10 +2,14 @@
 
 Production certification: **NO-GO**
 
-The repository is private and release archives are sha256-verifiable, but the
-current GitHub account does not provide the required protected private
-`main`/ruleset tier and release tags are not cryptographically signed. Tags
-therefore use release-candidate versions only.
+Release archives are sha256-verifiable, but `main` is not protected and release
+tags are not cryptographically signed. Tags therefore use release-candidate
+versions only.
+
+The tier objection recorded here earlier no longer applies: it assumed a
+private repository, and rulesets on a private repository need a paid plan. This
+repository is public, where rulesets are free. What blocks protection now is
+access, not tier — see below.
 
 The source workflow runs green when it runs at all: unit suite, source verifier
 and manifest reproducibility. The earlier billing/spending prerequisite is
@@ -33,15 +37,59 @@ Manual dispatch (`workflow_dispatch`) is the remedy for the second shape: it is
 how you ask for a run on a commit GitHub never built. It queues the run; it
 cannot conjure a runner, so it does nothing for the first shape.
 
-`main` is currently verified: `aba98df` passed unit suite, source verifier and
-manifest reproducibility on a hosted runner.
+`main` is currently verified: `235d7cf` passed unit suite, source verifier and
+manifest reproducibility on a hosted runner, 9/9 steps.
+
+## Branch protection
 
 Runner allocation aside, nothing yet *requires* the workflow to pass before a
 merge, so a red run cannot currently block one.
 
+The configuration that fixes it is committed at `.github/rulesets/main.json`:
+active enforcement on the default branch, no bypass actors, deletion and
+force-push blocked, changes through pull requests, and the `verify` check
+required in strict mode and pinned to the GitHub Actions app.
+
+It is **not applied**. Applying it needs `administration: write`, which this
+repository's automation deliberately does not hold, so it is a manual step by
+the owner:
+
+```bash
+gh api --method POST repos/virusa78/gov-harness/rulesets \
+  --input .github/rulesets/main.json
+```
+
+A committed JSON file describing protection proves nothing — that is the same
+error as a status line standing in for a run nobody produced. So the claim is
+checkable against the server:
+
+```bash
+GITHUB_TOKEN=<token with administration:read> \
+  python scripts/check_branch_protection.py --repo virusa78/gov-harness
+```
+
+Exit 1 is drift, exit 0 is the live ruleset satisfying every claim in the file,
+and **exit 2 is "could not tell" — not a pass**. Being unable to read the
+configuration is indistinguishable from the configuration being absent. As of
+2026-08-07 the checker reports drift: no such ruleset exists.
+
+Two deliberate choices in that file:
+
+- **`required_approving_review_count: 0`.** Requiring an approval on a
+  single-maintainer repository blocks every merge, because GitHub does not let
+  an author approve their own pull request. Required review stays an open
+  prerequisite below rather than being faked with a number that cannot be met.
+- **No bypass actors.** With none, an unavailable runner blocks merges to
+  `main` outright. That is the intended behaviour, and the escape hatch is
+  editing the ruleset — a deliberate, visible act, not a standing exemption
+  that quietly applies every day.
+
 Promotion requires all of:
 
-- protected `main` with required review and required CI;
+- protected `main` with required CI — configuration written and checkable
+  (`.github/rulesets/main.json`), not yet applied;
+- required review on `main` — blocked on there being a second human, not on
+  configuration;
 - an enabled hosted/self-hosted runner with a green source workflow — held
   2026-08-07, but it lapsed once already and nothing here guarantees it holds
   tomorrow, so it stays on this list until CI is *required* and an unavailable

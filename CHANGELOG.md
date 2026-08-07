@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## v0.9.0-rc.1 — 2026-08-07
+
+**The distributed payload is byte-identical to `v0.8.0-rc.1`.** Every file in
+`release/manifest.json` carries the same digest; only the version string
+differs. A consumer who syncs to this tag receives no new doctrine, no new
+gate, and no changed rule. The entire delta is governance of *this* repository:
+how its own claims are produced and checked.
+
+That is worth a tag rather than nothing, because the tag names a source state
+whose verification story changed. It is not worth pretending consumers gained
+something.
+
 - Branch protection for `main` is committed as configuration and made
   checkable: `.github/rulesets/main.json` requires the `verify` check in strict
   mode, pinned to the GitHub Actions app so no other app can satisfy the
@@ -31,6 +43,13 @@
   history keeps it forever. The markers are assembled at runtime so the
   verifier is not its own finding; public keys are unaffected, since publishing
   the public half in this repository is the documented procedure.
+
+- `docs/HARDENING.md` twice said something that had stopped being true: that
+  runner allocation was met, and that the account tier could not provide
+  rulesets. Runner state is now a dated table of what was observed rather than
+  a verdict, because the verdict flipped three times in a day, and the tier
+  objection assumed a private repository this one no longer is. Both were found
+  by acting on the file, not by reading it.
 
 ## v0.8.0-rc.1 — 2026-08-06
 

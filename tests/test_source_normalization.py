@@ -21,6 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import harness  # noqa: E402
 
+# Read from the manifest rather than pinned: a hardcoded tag here turns every
+# release bump into a test failure, which trains people to edit tests during a
+# release — the one moment they should not be doing that.
+VERSION = json.loads(
+    (ROOT / "release/manifest.json").read_text(encoding="utf-8")
+)["version"]
+
 
 class NormalizationTests(unittest.TestCase):
     CANONICAL = "https://github.com/virusa78/gov-harness"
@@ -81,7 +88,7 @@ class InstallTests(unittest.TestCase):
                 sys.executable, str(ROOT / "harness.py"), "init",
                 "--project", str(project),
                 "--source", source,
-                "--to", "v0.9.0-rc.1",
+                "--to", VERSION,
                 "--from-dir", str(ROOT),
                 "--profile", "spec/openspec",
                 "--param", "golden_sample=requirements/golden.md",

@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## v0.10.0-rc.1 — 2026-08-07
+
+**This one changes what consumers get.** Unlike `v0.9.0-rc.1`, whose payload
+was byte-identical to its predecessor, six files differ:
+
+| | |
+| --- | --- |
+| added | `scripts/verify-policies.py` |
+| changed | `scripts/harness.py`, `scripts/verify-adr.py` |
+| changed | all three `docs/governance/*-policy.example.json` |
+
+`v0.9.0-rc.1` is deliberately not re-cut. Its archive
+(`7cb731f3…e21a8e`) was built, verified, and handed over, and a tag pointing at
+a different tree than the archive already in someone's hands is exactly the
+class of defect the rest of this release exists to prevent. The version number
+is cheaper than the ambiguity.
+
+**Existing projects will fail POLICY-G the first time they run it.** That is
+the backlog that was already there, made visible — not a burden this release
+introduces. The pilot's four findings predate the gate.
+
 Three defects a live pilot exposed, none of which any of the 151 tests caught,
 because every one of them is invisible until something is actually run.
 

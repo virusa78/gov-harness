@@ -21,7 +21,7 @@ cd /path/to/your/project
 python3 ~/src/gov-harness/harness.py init \
   --project . \
   --source virusa78/gov-harness \
-  --to v0.9.0-rc.1 \
+  --to v0.10.0-rc.1 \
   --from-dir ~/src/gov-harness \
   --profile spec/openspec \
   --param golden_sample=requirements/golden.md
@@ -311,7 +311,7 @@ For contributors to `gov-harness` itself, not for consumers:
 ```bash
 python3 -m unittest discover -v -t . -s tests -p "test_*.py"
 python3 scripts/verify_source.py
-python3 scripts/build_manifest.py --version v0.9.0-rc.1 --check
+python3 scripts/build_manifest.py --version v0.10.0-rc.1 --check
 ```
 
 Read `docs/INDEX.md` first. A rule, gate, manifest schema, ownership boundary

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Branch protection for `main` is committed as configuration and made
+  checkable: `.github/rulesets/main.json` requires the `verify` check in strict
+  mode, pinned to the GitHub Actions app so no other app can satisfy the
+  context, blocks deletion and force-push, routes changes through pull
+  requests, and permits no bypass actors.
+- `scripts/check_branch_protection.py` reads the live ruleset and reports every
+  way it falls short of the committed one. A JSON file describing protection is
+  a claim about a server setting, and an unverified claim is exactly what this
+  repository refuses elsewhere. Exit 2 means "could not tell" and is not a
+  pass: being unable to read the configuration is indistinguishable from the
+  configuration being absent.
+- The ruleset is written but **not applied** — that needs `administration:
+  write`, which the automation here deliberately does not hold. Running the
+  checker today reports drift, correctly, because no such ruleset exists.
+
 - Add `workflow_dispatch` to the source workflow. Several merges landed while
   GitHub Actions was failing to resolve action downloads, so no run was created
   for them at all, and there was no way to ask for one afterwards — the commits

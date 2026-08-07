@@ -36,6 +36,8 @@ TOKEN_ENV = "GOV_HARNESS_TOKEN"
 PLACEHOLDER = __import__("re").compile(r"\{\{([a-z][a-z0-9_]*)\}\}")
 TARGET_NAME = __import__("re").compile(r"[a-z][a-z0-9-]*")
 PROFILE_NAME = __import__("re").compile(r"[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)?")
+SOURCE_OWNER = __import__("re").compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?")
+SOURCE_REPO = __import__("re").compile(r"[A-Za-z0-9._-]+")
 TARGET_ROOT_PARAM = "target_root"
 
 
@@ -920,13 +922,47 @@ def from_directory(path: str, version: str) -> Release:
 
 
 def parse_source_repo(source: str) -> tuple[str, str]:
+    """Split a source into owner and repo, accepting both spellings.
+
+    `OWNER/REPO` and `https://github.com/OWNER/REPO` name the same thing, and
+    both are in circulation: the README documented the short form for a long
+    time, and locks written under it are still installed. Refusing one of them
+    here would strand those projects on a source they cannot sync from, so both
+    resolve and `normalize_source` is what makes new locks uniform.
+    """
     prefix = "https://github.com/"
-    if not source.startswith(prefix):
-        raise HarnessError("network source must be an https://github.com/OWNER/REPO URL")
-    parts = source[len(prefix) :].strip("/").split("/")
+    remainder = source[len(prefix) :] if source.startswith(prefix) else source
+    if "://" in remainder:
+        raise HarnessError(
+            "source must be OWNER/REPO or https://github.com/OWNER/REPO "
+            f"(got {source!r})"
+        )
+    parts = remainder.strip("/").split("/")
     if len(parts) != 2 or not all(parts):
-        raise HarnessError("network source must name exactly OWNER/REPO")
-    return parts[0], parts[1].removesuffix(".git")
+        raise HarnessError(
+            "source must name exactly OWNER/REPO "
+            f"(got {source!r})"
+        )
+    owner, repo = parts[0], parts[1].removesuffix(".git")
+    # Without this an SSH remote (git@github.com:owner/repo.git) splits into two
+    # non-empty parts and passes, then gets pasted into a URL as an owner.
+    if not SOURCE_OWNER.fullmatch(owner) or not SOURCE_REPO.fullmatch(repo):
+        raise HarnessError(
+            "source must be OWNER/REPO or https://github.com/OWNER/REPO "
+            f"(got {source!r})"
+        )
+    return owner, repo
+
+
+def normalize_source(source: str) -> str:
+    """Canonical spelling to record in the lock.
+
+    Validation happens at install, not at the first network sync months later.
+    A lock that cannot be synced from is a defect created at install time, and
+    reporting it then is the difference between a typo and a stranded project.
+    """
+    owner, repo = parse_source_repo(source)
+    return f"https://github.com/{owner}/{repo}"
 
 
 class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -1133,6 +1169,10 @@ def print_drift(findings: list[tuple[str, str, str | None, str | None]]) -> None
 
 def command_init(args: argparse.Namespace) -> int:
     project = safe_project(args.project)
+    # Before anything is written. --from-dir does not consult the source, so an
+    # unusable one would otherwise be recorded silently and only surface at the
+    # first network sync, long after the install that caused it.
+    source = normalize_source(args.source)
     old_lock: dict[str, object] | None = None
     if (project / LOCK_NAME).exists():
         if not args.reinstall:
@@ -1142,14 +1182,14 @@ def command_init(args: argparse.Namespace) -> int:
     release: Release | None = None
     try:
         public_key = signing_key(args)
-        release = acquire_release(args.source, args.to, args.from_dir, public_key)
+        release = acquire_release(source, args.to, args.from_dir, public_key)
         check_prerequisites(project, release, args.profile)
         targets = args.target or [target.name for target in release.targets]
         payload, receipt = materialize(
             release, args.profile, params, args.override, targets
         )
         lock = build_lock(
-            args.source,
+            source,
             args.to,
             release.archive_sha256,
             args.profile,
@@ -1242,10 +1282,11 @@ def menu_choices(
 
 
 def command_select(args: argparse.Namespace) -> int:
+    source = normalize_source(args.source)
     release: Release | None = None
     try:
         public_key = signing_key(args)
-        release = acquire_release(args.source, args.to, args.from_dir, public_key)
+        release = acquire_release(source, args.to, args.from_dir, public_key)
         declared = sorted(
             {
                 entry.profile
@@ -1269,7 +1310,7 @@ def command_select(args: argparse.Namespace) -> int:
         else:
             chosen = menu_choices(families, standalone, info)
         print("\nвыбранные профили: " + (", ".join(chosen) if chosen else "(нет)"))
-        command = ["harness.py", "init", "--source", args.source, "--to", args.to]
+        command = ["harness.py", "init", "--source", source, "--to", args.to]
         for name in chosen:
             command += ["--profile", name]
         if args.reinstall:
@@ -1279,7 +1320,7 @@ def command_select(args: argparse.Namespace) -> int:
             return 0
         init_args = argparse.Namespace(
             project=args.project,
-            source=args.source,
+            source=source,
             to=args.to,
             profile=chosen,
             target=args.target,

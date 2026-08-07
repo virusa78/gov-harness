@@ -124,10 +124,13 @@ def check_lessons(lessons: Path, root: Path, field: str) -> list[str]:
     return findings
 
 
+DEFAULT_DECISIONS = "docs/architecture/decisions"
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".")
-    parser.add_argument("--decisions", default="docs/architecture/decisions")
+    parser.add_argument("--decisions", default=DEFAULT_DECISIONS)
     parser.add_argument("--lessons", default="docs/LESSONS.md")
     parser.add_argument("--lesson-field", default="Rule:")
     parser.add_argument(
@@ -146,6 +149,19 @@ def main(argv: list[str] | None = None) -> int:
         decisions = root / safe_relative(args.decisions, "--decisions")
         lessons = root / safe_relative(args.lessons, "--lessons")
         if not decisions.is_dir():
+            # Installing the profile is not yet using it. A project that has
+            # written no decisions has nothing to be wrong about, and a gate
+            # that is red from the first minute teaches people to ignore it.
+            # An explicit --decisions is different: the caller asserted a path,
+            # and a path that is not there is a configuration error.
+            if args.decisions == DEFAULT_DECISIONS:
+                print(
+                    f"SKIP ADR-G: {args.decisions} does not exist, so no "
+                    "decisions are recorded yet. Create the directory to "
+                    "activate this gate.",
+                    file=sys.stderr,
+                )
+                return 0
             raise ValueError(f"decisions directory does not exist: {args.decisions}")
         findings, records = check_records(decisions, root, sections)
         findings.extend(check_index(decisions / "README.md", root, records))

@@ -15,6 +15,7 @@ CORE_GATES = {
     "sync_agent_stubs.py",
     "verify-docs.sh",
     "verify_evidence.py",
+    "verify_policies.py",
     "verify_skills.py",
 }
 CORE_SKILLS = {

@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+Three defects a live pilot exposed, none of which any of the 151 tests caught,
+because every one of them is invisible until something is actually run.
+
+- **New gate `POLICY-G` (`scripts/verify-policies.py`), ADR-0017.** Gate
+  configuration is a file the project owns, so a release that adds a capability
+  adds a key to the *example* and the *copy* never gains it. The gate reading
+  the copy then reports clean, and nobody is told anything. On the pilot this
+  had hidden four capabilities across four versions: `AGENTS.md` was never
+  generated, and `EVID-G` — built precisely so completion claims become records
+  — ran on every commit printing `SKIP EVID-G: ... not configured`, which was
+  true and indistinguishable from working. POLICY-G pairs each `X.example.json`
+  with `X.json` and reports keys the copy neither carries nor declines. A
+  project declines a key by naming it in `"_declined"`: declining is a decision
+  and leaves a trace, not knowing is neither.
+- **The source is validated where it is recorded (ADR-0015).** `init` stored
+  `--source` without looking at it, because `--from-dir` never consults it; only
+  a later network `sync` parsed the value, and it refused the exact spelling the
+  README documented. A consumer following the README produced a lock they could
+  not upgrade from and learned it months later. `normalize_source` now runs
+  before anything is written, both spellings resolve so existing locks keep
+  working, and an SSH remote is refused instead of being pasted into a URL as
+  an owner.
+- **An unconfigured gate skips and says so (ADR-0016).** `ADR-G` exited 2 on a
+  fresh `adr` install because `docs/architecture/decisions` did not exist — red
+  on day one for a project that had done nothing wrong, which teaches a reader
+  that red is the normal colour. It now skips at the default path, still fails
+  on a path the caller asserted with `--decisions`, and activates the moment the
+  directory exists.
+- The README's minimal-install listing had silently dropped
+  `verify-evidence.py`, shipped in `v0.8.0-rc.1`. `tests/test_readme_claims.py`
+  now checks the listing and the exit-code table against the manifest, because
+  "produces exactly this" is a testable claim.
+- Lesson L5: a green check on an inert subsystem is worse than a red one.
+
 ## v0.9.0-rc.1 — 2026-08-07
 
 **The distributed payload is byte-identical to `v0.8.0-rc.1`.** Every file in

@@ -56,7 +56,8 @@ A minimal install (`--profile spec/openspec`) produces exactly this:
 .codex/skills/      the same four
 docs/governance/    rules/ (14 files incl. spec-home.md), 3 *-policy.example.json
 scripts/            harness.py, governance_docs.py, verify-docs.sh,
-                    verify-skills.py, sync-agent-stubs.py
+                    verify-skills.py, sync-agent-stubs.py,
+                    verify-evidence.py, verify-policies.py
 .harness.lock
 ```
 
@@ -255,7 +256,14 @@ owner in `superseded_by`.
 python3 scripts/harness.py check      # receipt integrity and strays
 python3 scripts/governance_docs.py --root . --mode block
 python3 scripts/verify-skills.py --root .
+python3 scripts/verify-policies.py --root .
 ```
+
+`verify-policies.py` (POLICY-G) compares each `*-policy.json` you own against
+the `*-policy.example.json` the release ships. When an upgrade adds a
+capability it adds a key to the example; your copy does not gain it, and the
+gate reading your copy would report clean while the capability sits unused.
+Configure the key or decline it by name in `"_declined": [...]`.
 
 Exit codes are not uniform across the tools — key off the right column:
 
@@ -266,6 +274,8 @@ Exit codes are not uniform across the tools — key off the right column:
 | `verify-skills.py` | 0 | 2 | 2 |
 | `sync-agent-stubs.py` | 0 | 2 | 2 |
 | `verify-adr.py` (adr profile) | 0 | 2 | 2 |
+| `verify-evidence.py verify` | 0 | 2 | 2 |
+| `verify-policies.py` | 0 | 2 | 3 |
 
 Without `--mode block`, `governance_docs.py` reports findings and still exits
 0; use `block` in CI.

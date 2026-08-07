@@ -163,11 +163,32 @@ class AdrGateTests(unittest.TestCase):
         self.assertIn("0001-first.md: missing required section 'Статус'", result.stdout)
         self.assertNotIn("0002-second.md", result.stdout)
 
-    def test_missing_decisions_directory_is_a_config_error(self) -> None:
+    def test_an_absent_default_directory_skips(self) -> None:
+        """Installing the profile is not yet using it.
+
+        A project that has written no decisions has nothing to be wrong about,
+        and a gate that is red from the first minute teaches people to ignore
+        it.
+        """
         shutil.rmtree(self.decisions)
         result = run(self.root)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("SKIP ADR-G", result.stderr)
+
+    def test_an_absent_explicit_directory_is_a_config_error(self) -> None:
+        """--decisions asserts a path; a path that is not there is an error."""
+        shutil.rmtree(self.decisions)
+        result = run(self.root, "--decisions", "docs/adr")
         self.assertEqual(2, result.returncode)
         self.assertIn("ADR-G CONFIG", result.stderr)
+
+    def test_an_empty_default_directory_activates_the_gate(self) -> None:
+        """Creating the directory is the act that switches the gate on."""
+        for path in self.decisions.iterdir():
+            path.unlink()
+        result = run(self.root)
+        self.assertEqual(2, result.returncode)
+        self.assertNotIn("SKIP ADR-G", result.stderr)
 
 
 class HarnessOwnRecordsTests(unittest.TestCase):

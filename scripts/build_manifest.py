@@ -141,6 +141,13 @@ def entries() -> list[dict[str, object]]:
             None,
             False,
         ),
+        (
+            ROOT / "core/gates/verify_policies.py",
+            "scripts/verify-policies.py",
+            "core",
+            None,
+            False,
+        ),
     ]
     for path in sorted((ROOT / "core/policies").glob("*.example.json")):
         mappings.append(

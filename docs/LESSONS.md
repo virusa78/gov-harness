@@ -77,3 +77,30 @@ status; a test that installs into a scratch project and runs the shipped gates
 is mandatory for any change to the release format.
 
 Source: v0.3.0-rc.1 and v0.4.0-rc.1 audit; ADR-0008, ADR-0009, ADR-0010.
+
+## L5 — A green check on an inert subsystem is worse than a red one (2026-08-07)
+
+Symptom: the pilot migrated from `v0.5.0-rc.1` to `v0.9.0-rc.1`, `check`
+reported clean, all seven gates passed, and four capabilities shipped across
+those four versions were sitting unused. No `AGENTS.md` had ever been
+generated. `EVID-G` — built precisely so that a completion claim becomes a
+record — ran on every invocation and printed `SKIP EVID-G: ... not configured`,
+which was true, correct, and indistinguishable from working.
+
+Cause: the three gate configurations are project-owned files, copied once from
+a shipped example and never touched again by design. When a release adds a
+capability it adds a key to the example; the copy does not gain it; the gate
+reads the copy, finds nothing, and reports what it honestly found. Every layer
+behaved correctly and the composition told the consumer nothing. The same pass
+found two quieter versions of the same shape: an install-time defect that only
+announced itself at the first network sync months later (ADR-0015), and a gate
+that was red on day one for a project that had done nothing wrong, which trains
+a reader that red is the normal colour (ADR-0016).
+
+Rule: whenever the harness ships something a project must opt into, the release
+must also ship the comparison that makes not opting in visible; "not
+configured" and "configured and satisfied" must never share an exit code or a
+line of output, and declining a capability must be an explicit statement in the
+consumer's own file rather than an absence.
+
+Source: v0.9.0-rc.1 pilot verification; ADR-0015, ADR-0016, ADR-0017.

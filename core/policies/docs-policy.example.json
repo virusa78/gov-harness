@@ -26,7 +26,15 @@
     "                        numeric   ^###\\\\s+([0-9]+\\\\.[0-9]+)\\\\b",
     "                      A completion claim without a matching fresh record is",
     "                      refused; evidence is bound to the commit it ran at, so",
-    "                      it goes stale the moment the code changes."
+    "                      it goes stale the moment the code changes.",
+    "",
+    "POLICY-G (scripts/verify-policies.py) compares this copy against the",
+    "example the release ships. When a release adds a key here, your copy does",
+    "not gain it — the harness never edits a project-owned file — so the gate",
+    "reading it would treat the capability as unconfigured and report clean.",
+    "POLICY-G turns that silence into a finding.",
+    "To decline a key deliberately, list its name in \"_declined\": [\"key\"].",
+    "Declining is a decision and leaves a trace; not knowing is neither."
   ],
   "schema_version": 1,
   "link_roots": [

@@ -9,7 +9,7 @@
     "             fans out into every selected target root, so list the roots you",
     "             installed. A listed root that does not exist is skipped, which",
     "             is how selecting a subset of targets stays quiet.",
-    "skills       ONLY skills the receipt does not own \u2014 normally your own local",
+    "skills       ONLY skills the receipt does not own — normally your own local",
     "             ones. Core and profile skills are read from .harness.lock, which",
     "             already records the layer of each, so restating them here would",
     "             be a second copy of the same fact and the first thing to rot when",
@@ -19,7 +19,15 @@
     "                       override and must not be receipt-owned.",
     "",
     "The gate fails on any skill present on disk that neither the lock nor this",
-    "file accounts for, so a hand-copied skill tree cannot drift in silently."
+    "file accounts for, so a hand-copied skill tree cannot drift in silently.",
+    "",
+    "POLICY-G (scripts/verify-policies.py) compares this copy against the",
+    "example the release ships. When a release adds a key here, your copy does",
+    "not gain it — the harness never edits a project-owned file — so the gate",
+    "reading it would treat the capability as unconfigured and report clean.",
+    "POLICY-G turns that silence into a finding.",
+    "To decline a key deliberately, list its name in \"_declined\": [\"key\"].",
+    "Declining is a decision and leaves a trace; not knowing is neither."
   ],
   "schema_version": 1,
   "skills_root": [

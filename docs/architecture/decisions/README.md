@@ -18,3 +18,6 @@
 | [ADR-0012](0012-the-release-is-signed-and-the-key-comes-from-the-consumer.md) | The release is signed; the verifying key is supplied by the consumer, never by the release | Accepted |
 | [ADR-0013](0013-doctrine-is-visible-through-a-generated-agents-md-block.md) | Doctrine reaches non-skill tools through a generated block inside the consumer's AGENTS.md | Accepted |
 | [ADR-0014](0014-a-completion-claim-is-a-record-that-goes-stale.md) | A completion claim is a recorded command bound to a commit; it expires when the code changes | Accepted |
+| [ADR-0015](0015-a-source-is-validated-where-it-is-recorded.md) | The source is validated and normalized at install; both spellings resolve so existing locks keep working | Accepted |
+| [ADR-0016](0016-an-unconfigured-gate-skips-and-says-so.md) | Absence of the thing a gate governs is an announced skip, not a failure; an explicit path is still asserted | Accepted |
+| [ADR-0017](0017-a-project-owned-policy-is-compared-to-the-example-it-came-from.md) | A policy copy must account for every key its example defines; declining is explicit, not knowing is a finding | Accepted |

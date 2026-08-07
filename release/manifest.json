@@ -6,7 +6,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:7ee31a49d67d298453144b5aff747581864144331f8a573d741bdc9691ab0df4",
+      "sha256": "sha256:e86728c45958f4933f089c6b086cee26aed86e44fc2c71c4fab44a64e47b2d2f",
       "source": "core/policies/docs-policy.example.json",
       "templated": false
     },
@@ -209,7 +209,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:2b9c50f26ce53e6767c5e3a75f9b730562cef2c7d2f63424d4e8bd7976878021",
+      "sha256": "sha256:a8743c45454f64003fc0eea81bbaa5aa42f0f87a002ebfb1074743c9bc27e067",
       "source": "core/policies/skill-policy.example.json",
       "templated": false
     },
@@ -219,7 +219,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:0d322507e0b3257d4b8ac234d28330b39d37d317661b0b4e3ce39ebf6e0d7f66",
+      "sha256": "sha256:a6deadd172bcbf4b590c00a1b2b185dded566bd2e80e5a8d1022508365ebd926",
       "source": "core/policies/stub-policy.example.json",
       "templated": false
     },
@@ -239,7 +239,7 @@
       "fanout": false,
       "layer": "core",
       "profile": null,
-      "sha256": "sha256:e48b7556d9ff85feb2096202aa59632fbf92b42cd7e413ab47216e7519529ab2",
+      "sha256": "sha256:a357ddd276acdc4a35d30ded7caf005dc5fff5757c710e7b91d2000fd25bc0c3",
       "source": "harness.py",
       "templated": false
     },
@@ -259,7 +259,7 @@
       "fanout": false,
       "layer": "profile",
       "profile": "adr",
-      "sha256": "sha256:9bfc8ce37c9ea9c93d8fa9d9765dd5aeb3127490fddbfcd0ed5b39c8441b7203",
+      "sha256": "sha256:8cadd1cb134df89583c9262209f09a34efd6db11bc0ed844b2bd9f7295a9faa7",
       "source": "profiles/adr/gates/verify_adr.py",
       "templated": false
     },
@@ -281,6 +281,16 @@
       "profile": null,
       "sha256": "sha256:18249d865eed033be53be63b5eb85a318d4044ab6e81d6e89d72f1d660c538ea",
       "source": "core/gates/verify_evidence.py",
+      "templated": false
+    },
+    {
+      "destination": "scripts/verify-policies.py",
+      "executable": true,
+      "fanout": false,
+      "layer": "core",
+      "profile": null,
+      "sha256": "sha256:9060ad7a06710be9ffcc917a2cab3da29beed55d2b813c4c322e7e0f51c4d55f",
+      "source": "core/gates/verify_policies.py",
       "templated": false
     },
     {
